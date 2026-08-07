@@ -1,0 +1,6 @@
+@Hi_Trade_HostAddress = http://localhost:5108
+
+GET {{Hi_Trade_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
