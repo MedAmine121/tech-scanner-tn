@@ -1,11 +1,34 @@
+using Hi_Trade.DAL;
+using Hi_Trade.Services;
+using Hi_Trade.Endpoints;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add DbContext with SQL Server
+builder.Services.AddDbContext<TechScannerContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register Web Scrapers
+builder.Services.AddScoped<IWebScraper, MyTekScraper>();
+builder.Services.AddScoped<IWebScraper, TunisiaNetScraper>();
+builder.Services.AddScoped<IWebScraper, SpaceNetScraper>();
+
+// Register hosted service for web scraping
+builder.Services.AddHostedService<WebScraperHostedService>();
+
 var app = builder.Build();
+
+// Ensure database is created
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<TechScannerContext>();
+    context.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -15,6 +38,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.MapInternetProviderEndpoints();
 
 var summaries = new[]
 {
