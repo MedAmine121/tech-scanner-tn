@@ -8,13 +8,24 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddControllers();
 
 // Add DbContext with SQL Server
 builder.Services.AddDbContext<TechScannerContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register Web Scrapers
-builder.Services.AddScoped<IWebScraper, MyTekScraper>();
+builder.Services.AddHttpClient("Mytek", client =>
+{
+    client.BaseAddress = new Uri("https://www.mytek.tn/");
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+});
+builder.Services.AddScoped<MytekScraperService>();
+builder.Services.AddScoped<IMytekScraperService>(serviceProvider =>
+    serviceProvider.GetRequiredService<MytekScraperService>());
+builder.Services.AddScoped<IWebScraper>(serviceProvider =>
+    serviceProvider.GetRequiredService<MytekScraperService>());
 builder.Services.AddScoped<IWebScraper, TunisiaNetScraper>();
 builder.Services.AddScoped<IWebScraper, SpaceNetScraper>();
 
@@ -39,6 +50,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.MapControllers();
 app.MapInternetProviderEndpoints();
 
 var summaries = new[]
