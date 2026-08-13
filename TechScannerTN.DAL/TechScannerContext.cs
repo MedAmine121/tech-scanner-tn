@@ -11,6 +11,7 @@ public class TechScannerContext : DbContext
 
     public DbSet<InternetProvider> InternetProviders { get; set; }
     public DbSet<Plan> Plans { get; set; }
+    public DbSet<Category> Categories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +37,16 @@ public class TechScannerContext : DbContext
             entity.Property(e => e.Price).HasPrecision(18, 2);
             entity.HasIndex(e => new { e.InternetProviderId, e.Name });
             entity.HasIndex(e => e.ScrapedAt);
+        });
+
+        modelBuilder.Entity<Category>(entity =>
+        {
+            entity.HasKey(e => e.Url);
+            entity.Property(e => e.Url).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.ParentCategory).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
         });
     }
 }

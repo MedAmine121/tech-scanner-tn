@@ -49,7 +49,6 @@ public class WebScraperHostedService : BackgroundService
             using var scope = _serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<TechScannerContext>();
             var scrapers = scope.ServiceProvider.GetRequiredService<IEnumerable<IWebScraper>>();
-
             foreach (var scraper in scrapers)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -63,7 +62,11 @@ public class WebScraperHostedService : BackgroundService
                 {
                     var plans = await scraper.ScrapeAsync();
 
-                    if (plans.Count > 0)
+                    if (scraper.ProviderName == "Mytek")
+                    {
+                        _logger.LogInformation("Mytek categories were scraped and stored.");
+                    }
+                    else if (plans.Count > 0)
                     {
                         await StorePlansAsync(context, scraper.ProviderName, plans);
                     }
