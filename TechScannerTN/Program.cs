@@ -13,6 +13,10 @@ builder.Services.AddControllers();
 // Add DbContext with SQL Server
 builder.Services.AddDbContext<TechScannerContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Add DbContext with SQL Server
+builder.Services.AddDbContextFactory<TechScannerContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")),
+    ServiceLifetime.Scoped);
 
 builder.Services.AddHttpClient("Mytek", client =>
 {
@@ -24,10 +28,7 @@ builder.Services.AddHttpClient("Mytek", client =>
 builder.Services.AddScoped<MytekScraperService>();
 builder.Services.AddScoped<IMytekScraperService>(serviceProvider =>
     serviceProvider.GetRequiredService<MytekScraperService>());
-builder.Services.AddScoped<IWebScraper>(serviceProvider =>
-    serviceProvider.GetRequiredService<MytekScraperService>());
-builder.Services.AddScoped<IWebScraper, TunisiaNetScraper>();
-builder.Services.AddScoped<IWebScraper, SpaceNetScraper>();
+builder.Services.AddScoped<IWebScraper, MytekScraperService>();
 
 // Register hosted service for web scraping
 builder.Services.AddHostedService<WebScraperHostedService>();

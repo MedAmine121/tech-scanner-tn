@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Hi_Trade.Services;
 
-public class SpaceNetScraper : IWebScraper
+public class SpaceNetScraper
 {
     private readonly ILogger<SpaceNetScraper> _logger;
     private readonly HttpClient _httpClient;

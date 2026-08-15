@@ -12,6 +12,7 @@ public class TechScannerContext : DbContext
     public DbSet<InternetProvider> InternetProviders { get; set; }
     public DbSet<Plan> Plans { get; set; }
     public DbSet<Category> Categories { get; set; }
+    public DbSet<Product> Products { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,6 +48,25 @@ public class TechScannerContext : DbContext
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+        });
+
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.HasKey(e => e.ProductReference);
+            entity.Property(e => e.ProductReference).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.ProductUrl).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.ImageUrl).HasMaxLength(1000);
+            entity.Property(e => e.Price).HasPrecision(18, 3);
+            entity.Property(e => e.CategoryId).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.CategoryName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.ScrapedAt).HasColumnName("scraped_at");
+            entity.HasIndex(e => e.CategoryId);
+            entity.HasIndex(e => e.ScrapedAt);
+            entity.HasOne(e => e.Category)
+                .WithMany(e => e.Products)
+                .HasForeignKey(e => e.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
