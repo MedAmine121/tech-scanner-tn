@@ -66,10 +66,6 @@ public class WebScraperHostedService : BackgroundService
                     {
                         _logger.LogInformation("Mytek categories were scraped and stored.");
                     }
-                    else if (plans.Count > 0)
-                    {
-                        await StorePlansAsync(context, scraper.ProviderName, plans);
-                    }
                     else
                     {
                         _logger.LogWarning("No plans found for {ProviderName}", scraper.ProviderName);

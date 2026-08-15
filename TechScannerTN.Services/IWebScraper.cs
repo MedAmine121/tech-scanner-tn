@@ -6,5 +6,5 @@ public interface IWebScraper
 {
     string ProviderName { get; }
 
-    Task<List<Plan>> ScrapeAsync();
+    Task<List<Product>> ScrapeAsync();
 }

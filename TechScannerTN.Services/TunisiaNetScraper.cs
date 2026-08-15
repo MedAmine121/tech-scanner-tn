@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Hi_Trade.Services;
 
-public class TunisiaNetScraper : IWebScraper
+public class TunisiaNetScraper
 {
     private readonly ILogger<TunisiaNetScraper> _logger;
     private readonly HttpClient _httpClient;
