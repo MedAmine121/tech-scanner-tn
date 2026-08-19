@@ -62,9 +62,9 @@ public class WebScraperHostedService : BackgroundService
                 {
                     var plans = await scraper.ScrapeAsync();
 
-                    if (scraper.ProviderName == "Mytek")
+                    if (scraper.ProviderName is "Mytek" or "TunisiaNet")
                     {
-                        _logger.LogInformation("Mytek categories were scraped and stored.");
+                        _logger.LogInformation("{ProviderName} categories were scraped and stored.", scraper.ProviderName);
                     }
                     else
                     {
