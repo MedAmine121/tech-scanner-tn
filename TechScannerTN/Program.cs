@@ -1,7 +1,8 @@
 using Hi_Trade.DAL;
-using Hi_Trade.Services;
 using Hi_Trade.Endpoints;
+using Hi_Trade.Services;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +41,10 @@ builder.Services.AddScoped<IWebScraper, TunisiaNetScraper>();
 
 // Register hosted service for web scraping
 builder.Services.AddHostedService<WebScraperHostedService>();
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .CreateLogger();
+builder.Host.UseSerilog();
 
 var app = builder.Build();
 
