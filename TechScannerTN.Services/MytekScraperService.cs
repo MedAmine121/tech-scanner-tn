@@ -183,7 +183,7 @@ public sealed class MytekScraperService : IMytekScraperService, IWebScraper
                 using var response = await client.GetAsync(pageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning(
+                    _logger.LogError(
                         "Failed to fetch Mytek category page {PageUrl}. Status code: {StatusCode}",
                         pageUrl,
                         response.StatusCode);

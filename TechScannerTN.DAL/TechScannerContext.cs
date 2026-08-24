@@ -52,7 +52,6 @@ public class TechScannerContext : DbContext
 
         modelBuilder.Entity<Product>(entity =>
         {
-            entity.HasKey(e => e.ProductReference);
             entity.Property(e => e.ProductReference).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
             entity.Property(e => e.ProductUrl).IsRequired().HasMaxLength(1000);

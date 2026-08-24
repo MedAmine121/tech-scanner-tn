@@ -68,7 +68,7 @@ public class WebScraperHostedService : BackgroundService
                     }
                     else
                     {
-                        _logger.LogWarning("No plans found for {ProviderName}", scraper.ProviderName);
+                        _logger.LogError("No plans found for {ProviderName}", scraper.ProviderName);
                     }
                 }
                 catch (Exception ex)
@@ -87,69 +87,6 @@ public class WebScraperHostedService : BackgroundService
             _logger.LogError(ex, "Error in PerformScrapeAsync");
         }
     }
-
-    private async Task StorePlansAsync(TechScannerContext context, string providerName, List<Plan> plans)
-    {
-        try
-        {
-            // Get or create provider
-            var provider = await context.InternetProviders
-                .FirstOrDefaultAsync(p => p.Name == providerName);
-
-            if (provider == null)
-            {
-                provider = new InternetProvider
-                {
-                    Name = providerName,
-                    Website = GetProviderWebsite(providerName),
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                context.InternetProviders.Add(provider);
-                await context.SaveChangesAsync();
-                _logger.LogInformation("Created new provider: {ProviderName}", providerName);
-            }
-
-            // Remove old plans for this provider
-            var oldPlans = context.Plans.Where(p => p.InternetProviderId == provider.Id).ToList();
-            if (oldPlans.Count > 0)
-            {
-                context.Plans.RemoveRange(oldPlans);
-                _logger.LogInformation("Removed {OldPlanCount} old plans for {ProviderName}", oldPlans.Count, providerName);
-            }
-
-            // Add new plans
-            foreach (var plan in plans)
-            {
-                plan.InternetProviderId = provider.Id;
-                plan.ScrapedAt = DateTime.UtcNow;
-                context.Plans.Add(plan);
-            }
-
-            // Update provider timestamp
-            provider.UpdatedAt = DateTime.UtcNow;
-            await context.SaveChangesAsync();
-
-            _logger.LogInformation("Stored {PlanCount} plans for {ProviderName}", plans.Count, providerName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error storing plans for {ProviderName}", providerName);
-            throw;
-        }
-    }
-
-    private string GetProviderWebsite(string providerName)
-    {
-        return providerName switch
-        {
-            "MyTek" => "https://www.mytek.tn",
-            "TunisiaNet" => "https://www.tunisianet.tn",
-            "SpaceNet" => "https://www.spacenet.tn",
-            _ => string.Empty
-        };
-    }
-
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("WebScraperHostedService stopping");
