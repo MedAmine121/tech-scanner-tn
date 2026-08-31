@@ -26,8 +26,6 @@ bld/
 [Ll]og/
 [Ll]ogs/
 [Mm]igrations/
-!TechScannerTN.DAL/Migrations/
-!TechScannerTN.DAL/Migrations/**
 [Ww]wwroot/
 # Visual Studio 2015 cache/options directory
 .vs/

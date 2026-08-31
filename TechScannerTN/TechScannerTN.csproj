@@ -8,7 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.29" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
@@ -20,9 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TechScannerTN.BLL\TechScannerTN.BLL.csproj" />
     <ProjectReference Include="..\TechScannerTN.Services\TechScannerTN.Services.csproj" />
     <ProjectReference Include="..\TechScannerTN.DAL\TechScannerTN.DAL.csproj" />
     <ProjectReference Include="..\TechScannerTN.Models\TechScannerTN.Models.csproj" />
   </ItemGroup>
 
 </Project>
+

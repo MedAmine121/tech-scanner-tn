@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { StorageService } from './storage.service';
 import { BaseResult } from '../2_Models/common/base-result.model';
+import { Constants } from '../6_Common/constants';
+import { Context } from '../2_Models/responses/context.model';
 
 @Injectable({
   providedIn: 'root'
@@ -14,8 +16,8 @@ export class ApiService {
   private storage = inject(StorageService);
 
   private getAuthHeaders(): HttpHeaders {
-    const ctx = this.storage.getLocalStorage('app_context') as any;
-    const token = ctx?.token || ctx?.accessToken || null;
+    const ctx = this.storage.getLocalStorage<Context>(Constants.CONTEXT_KEY);
+    const token = ctx?.token || null;
     if (token) {
       return new HttpHeaders({
         Authorization: `Bearer ${token}`,

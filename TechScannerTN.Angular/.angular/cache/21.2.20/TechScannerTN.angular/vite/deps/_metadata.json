@@ -1,0 +1,88 @@
+{
+  "hash": "1672d228",
+  "configHash": "18b4199a",
+  "lockfileHash": "2e09905d",
+  "browserHash": "d92ced81",
+  "optimized": {
+    "@angular/common": {
+      "src": "../../../../../../node_modules/@angular/common/fesm2022/common.mjs",
+      "file": "@angular_common.js",
+      "fileHash": "86ace8ee",
+      "needsInterop": false
+    },
+    "@angular/common/http": {
+      "src": "../../../../../../node_modules/@angular/common/fesm2022/http.mjs",
+      "file": "@angular_common_http.js",
+      "fileHash": "d7553cb6",
+      "needsInterop": false
+    },
+    "@angular/core": {
+      "src": "../../../../../../node_modules/@angular/core/fesm2022/core.mjs",
+      "file": "@angular_core.js",
+      "fileHash": "ce1f8f59",
+      "needsInterop": false
+    },
+    "@angular/forms": {
+      "src": "../../../../../../node_modules/@angular/forms/fesm2022/forms.mjs",
+      "file": "@angular_forms.js",
+      "fileHash": "0bc49751",
+      "needsInterop": false
+    },
+    "@angular/platform-browser": {
+      "src": "../../../../../../node_modules/@angular/platform-browser/fesm2022/platform-browser.mjs",
+      "file": "@angular_platform-browser.js",
+      "fileHash": "b215c1b8",
+      "needsInterop": false
+    },
+    "@angular/platform-browser/animations/async": {
+      "src": "../../../../../../node_modules/@angular/platform-browser/fesm2022/animations-async.mjs",
+      "file": "@angular_platform-browser_animations_async.js",
+      "fileHash": "b866218e",
+      "needsInterop": false
+    },
+    "@angular/router": {
+      "src": "../../../../../../node_modules/@angular/router/fesm2022/router.mjs",
+      "file": "@angular_router.js",
+      "fileHash": "ab51705a",
+      "needsInterop": false
+    },
+    "ngx-toastr": {
+      "src": "../../../../../../node_modules/ngx-toastr/fesm2022/ngx-toastr.mjs",
+      "file": "ngx-toastr.js",
+      "fileHash": "4e857216",
+      "needsInterop": false
+    },
+    "rxjs": {
+      "src": "../../../../../../node_modules/rxjs/dist/esm5/index.js",
+      "file": "rxjs.js",
+      "fileHash": "151721b6",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "browser-FCEIYKUL": {
+      "file": "browser-FCEIYKUL.js"
+    },
+    "chunk-N64LUYRX": {
+      "file": "chunk-N64LUYRX.js"
+    },
+    "chunk-QPRJYRB2": {
+      "file": "chunk-QPRJYRB2.js"
+    },
+    "chunk-VQTDRBJ4": {
+      "file": "chunk-VQTDRBJ4.js"
+    },
+    "chunk-I3E2WH2E": {
+      "file": "chunk-I3E2WH2E.js"
+    },
+    "chunk-YI7UELIH": {
+      "file": "chunk-YI7UELIH.js"
+    },
+    "chunk-KD7MKTJ6": {
+      "file": "chunk-KD7MKTJ6.js"
+    },
+    "chunk-PJVWDKLX": {
+      "file": "chunk-PJVWDKLX.js"
+    }
+  }
+}

@@ -1,0 +1,224 @@
+<div class="auth-page-wrapper">
+  <!-- Glowing Background Orbs -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+
+  <div class="auth-container">
+    <!-- Back to Home link -->
+    <a [routerLink]="['/']" class="back-link">
+      <svg viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+      </svg>
+      <span>Back to TechScannerTN</span>
+    </a>
+
+    <!-- Auth Card -->
+    <div class="auth-card">
+      <!-- Card Header -->
+      <div class="auth-header">
+        <div class="brand-logo-pill">
+          <div class="brand-icon-mini">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"/>
+              <circle cx="12" cy="12" r="3" fill="currentColor"/>
+            </svg>
+          </div>
+          <span class="brand-name">TechScanner<span class="brand-badge-mini">TN</span></span>
+        </div>
+        <h1 class="auth-title">Create Free Account</h1>
+        <p class="auth-subtitle">Join thousands of Tunisians tracking hardware prices & ISP deals.</p>
+      </div>
+
+      <!-- Error Alert Box -->
+      @if (errorMessage()) {
+        <div class="error-alert">
+          <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <div class="alert-text">{{ errorMessage() }}</div>
+        </div>
+      }
+
+      <!-- Form -->
+      <form (ngSubmit)="onSignup()" class="auth-form">
+        <!-- Full Name -->
+        <div class="form-group">
+          <label for="fullName" class="form-label">Full Name</label>
+          <div class="input-wrapper" [class.input-error]="fullNameHasError()">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+            </svg>
+            <input
+              id="fullName"
+              type="text"
+              [ngModel]="fullName()"
+              (ngModelChange)="onFullNameChange($event)"
+              (blur)="markFullNameTouched()"
+              name="fullName"
+              placeholder="e.g. Mohamed Amine"
+              class="form-input"
+              autocomplete="name"
+            />
+          </div>
+          @if (fullNameHasError()) {
+            <span class="validation-msg">
+              @if (!fullName().trim()) { Full name is required. }
+              @else { Name must be at least 2 characters. }
+            </span>
+          }
+        </div>
+
+        <!-- Email Address -->
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address</label>
+          <div class="input-wrapper" [class.input-error]="emailHasError()">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+            </svg>
+            <input
+              id="email"
+              type="email"
+              [ngModel]="email()"
+              (ngModelChange)="onEmailChange($event)"
+              (blur)="markEmailTouched()"
+              name="email"
+              placeholder="e.g. amine@techscanner.tn"
+              class="form-input"
+              autocomplete="email"
+            />
+          </div>
+          @if (emailHasError()) {
+            <span class="validation-msg">
+              @if (!email().trim()) { Email is required. }
+              @else { Please enter a valid email address. }
+            </span>
+          }
+        </div>
+
+        <!-- City / Address -->
+        <div class="form-group">
+          <label for="address" class="form-label">City / Governorat in Tunisia</label>
+          <div class="input-wrapper" [class.input-error]="addressHasError()">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+            </svg>
+            <input
+              id="address"
+              type="text"
+              [ngModel]="address()"
+              (ngModelChange)="onAddressChange($event)"
+              (blur)="markAddressTouched()"
+              name="address"
+              placeholder="e.g. Tunis, Ariana, Sousse, Sfax..."
+              class="form-input"
+              autocomplete="address-level2"
+            />
+          </div>
+          @if (addressHasError()) {
+            <span class="validation-msg">Location/City is required to suggest nearest stores.</span>
+          }
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-wrapper" [class.input-error]="passwordHasError()">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+            </svg>
+            <input
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              [ngModel]="password()"
+              (ngModelChange)="onPasswordChange($event)"
+              (blur)="markPasswordTouched()"
+              name="password"
+              placeholder="Min. 8 characters"
+              class="form-input"
+              autocomplete="new-password"
+            />
+            <button (click)="togglePasswordVisibility()" type="button" class="btn-toggle-eye" aria-label="Toggle password visibility">
+              @if (!showPassword()) {
+                <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+              } @else {
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
+              }
+            </button>
+          </div>
+          @if (passwordHasError()) {
+            <span class="validation-msg">Password must be at least 8 characters long.</span>
+          }
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="form-group">
+          <label for="confirmPassword" class="form-label">Confirm Password</label>
+          <div class="input-wrapper" [class.input-error]="confirmPasswordHasError()">
+            <svg class="input-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <input
+              id="confirmPassword"
+              [type]="showConfirmPassword() ? 'text' : 'password'"
+              [ngModel]="confirmPassword()"
+              (ngModelChange)="onConfirmPasswordChange($event)"
+              (blur)="markConfirmPasswordTouched()"
+              name="confirmPassword"
+              placeholder="Re-enter your password"
+              class="form-input"
+              autocomplete="new-password"
+            />
+            <button (click)="toggleConfirmPasswordVisibility()" type="button" class="btn-toggle-eye" aria-label="Toggle password visibility">
+              @if (!showConfirmPassword()) {
+                <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+              } @else {
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
+              }
+            </button>
+          </div>
+          @if (confirmPasswordHasError()) {
+            <span class="validation-msg">Passwords do not match.</span>
+          }
+        </div>
+
+        <!-- Terms Agreement -->
+        <div class="form-terms-row">
+          <label class="checkbox-label" [class.label-error]="termsHasError()">
+            <input
+              type="checkbox"
+              [ngModel]="agreedToTerms()"
+              (ngModelChange)="onAgreedToTermsChange($event)"
+              (blur)="markTermsTouched()"
+              name="agreedToTerms"
+              class="custom-checkbox"
+            />
+            <span>I agree to the TechScannerTN Terms of Service and Privacy Policy</span>
+          </label>
+        </div>
+
+        <!-- Submit Button -->
+        <button [disabled]="isLoading()" type="submit" class="btn-submit">
+          @if (isLoading()) {
+            <span class="spinner"></span>
+            <span>Creating Your Account...</span>
+          } @else {
+            <span>Create Free Account</span>
+            <svg class="submit-arrow" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          }
+        </button>
+      </form>
+
+      <!-- Switch to Login -->
+      <div class="auth-footer">
+        <p class="switch-prompt">
+          Already have a TechScannerTN account?
+          <a [routerLink]="['/login']" class="switch-link">Sign In</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+

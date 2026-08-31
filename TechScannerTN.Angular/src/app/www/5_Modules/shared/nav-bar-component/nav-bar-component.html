@@ -1,0 +1,123 @@
+<header class="ts-navbar">
+  <div class="nav-container">
+    <!-- Brand Logo -->
+    <a [routerLink]="['/']" class="brand-link">
+      <div class="brand-icon-wrapper">
+        <svg class="brand-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"/>
+          <path d="M12 7V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="3" fill="currentColor"/>
+        </svg>
+        <span class="radar-pulse"></span>
+      </div>
+      <span class="brand-text">TechScanner<span class="brand-badge">TN</span></span>
+    </a>
+
+    <!-- Navigation Links (Desktop) -->
+    <nav class="nav-links desktop-only">
+      <a [routerLink]="['/']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item">
+        <span>Overview</span>
+      </a>
+      <a href="#hardware-deals" class="nav-item">
+        <span>Hardware Scanners</span>
+        <span class="badge-mini">Live</span>
+      </a>
+      <a href="#isp-plans" class="nav-item">
+        <span>ISP Plans</span>
+      </a>
+      <a href="#features" class="nav-item">
+        <span>Features</span>
+      </a>
+    </nav>
+
+    <!-- Right Side / Auth Actions -->
+    <div class="nav-actions desktop-only">
+      @if (!isAuth()) {
+        <a [routerLink]="['/login']" class="btn-signin">
+          <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+          <span>Sign In</span>
+        </a>
+        <a [routerLink]="['/signup']" class="btn-signup">
+          <span>Create Account</span>
+          <svg class="btn-arrow" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </a>
+      } @else {
+        <div class="user-menu-wrapper">
+          <button (click)="toggleUserDropdown($event)" class="user-pill" type="button">
+            <div class="avatar-circle">
+              <span>{{ userInitials() }}</span>
+            </div>
+            <div class="user-info-text">
+              <span class="user-name">{{ userDisplayName() }}</span>
+              <span class="user-role-label">Verified Member</span>
+            </div>
+            <svg class="dropdown-chevron" [class.rotated]="showUserDropdown()" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+
+          @if (showUserDropdown()) {
+            <div class="user-dropdown-menu" (click)="$event.stopPropagation()">
+              <div class="dropdown-header">
+                <div class="dropdown-avatar">{{ userInitials() }}</div>
+                <div class="dropdown-details">
+                  <p class="dropdown-name">{{ userDisplayName() }}</p>
+                  <p class="dropdown-email">{{ currentUser()?.email }}</p>
+                </div>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a [routerLink]="['/']" (click)="closeUserDropdown()" class="dropdown-item">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+                <span>Dashboard & Trackers</span>
+              </a>
+              <div class="dropdown-divider"></div>
+              <button (click)="onLogout()" type="button" class="dropdown-item logout-item">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/></svg>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Mobile Hamburger Button -->
+    <button (click)="toggleMenu()" class="mobile-toggle-btn mobile-only" type="button" aria-label="Toggle navigation">
+      <span class="bar" [class.open]="isMenuOpen()"></span>
+      <span class="bar" [class.open]="isMenuOpen()"></span>
+      <span class="bar" [class.open]="isMenuOpen()"></span>
+    </button>
+  </div>
+
+  <!-- Mobile Drawer Menu -->
+  @if (isMenuOpen()) {
+    <div class="mobile-menu mobile-only">
+      <nav class="mobile-links">
+        <a [routerLink]="['/']" (click)="toggleMenu()" class="mobile-item">Overview</a>
+        <a href="#hardware-deals" (click)="toggleMenu()" class="mobile-item">Hardware Scanners</a>
+        <a href="#isp-plans" (click)="toggleMenu()" class="mobile-item">ISP Plans</a>
+        <a href="#features" (click)="toggleMenu()" class="mobile-item">Features</a>
+      </nav>
+      <div class="mobile-auth-section">
+        @if (!isAuth()) {
+          <a [routerLink]="['/login']" (click)="toggleMenu()" class="btn-mobile-signin">Sign In</a>
+          <a [routerLink]="['/signup']" (click)="toggleMenu()" class="btn-mobile-signup">Create Free Account</a>
+        } @else {
+          <div class="mobile-user-card">
+            <div class="avatar-circle">{{ userInitials() }}</div>
+            <div class="user-info-text">
+              <span class="user-name">{{ userDisplayName() }}</span>
+              <span class="user-email-text">{{ currentUser()?.email }}</span>
+            </div>
+          </div>
+          <button (click)="onLogout(); toggleMenu()" class="btn-mobile-logout" type="button">Sign Out</button>
+        }
+      </div>
+    </div>
+  }
+</header>
+

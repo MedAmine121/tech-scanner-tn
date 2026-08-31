@@ -1,36 +1,42 @@
 import { Injectable } from '@angular/core';
 
 @Injectable({
-    providedIn: 'root'
+  providedIn: 'root'
 })
 export class StorageService {
-n    constructor() { }
-n    // LocalStorage methods
-    setLocalStorage(key: string, value: unknown): void {
-        localStorage.setItem(key, JSON.stringify(value));
+  constructor() { }
+
+  setLocalStorage(key: string, value: unknown): void {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.error('StorageService setLocalStorage error', e);
     }
-n    getLocalStorage(key: string): unknown {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : null;
+  }
+
+  getLocalStorage<T = unknown>(key: string): T | null {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) as T : null;
+    } catch (e) {
+      console.error('StorageService getLocalStorage error', e);
+      return null;
     }
-n    removeLocalStorage(key: string): void {
-        localStorage.removeItem(key);
+  }
+
+  removeLocalStorage(key: string): void {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.error('StorageService removeLocalStorage error', e);
     }
-n    clearLocalStorage(): void {
-        localStorage.clear();
+  }
+
+  clearLocalStorage(): void {
+    try {
+      localStorage.clear();
+    } catch (e) {
+      console.error('StorageService clearLocalStorage error', e);
     }
-n    // SessionStorage methods
-    setSessionStorage(key: string, value: unknown): void {
-        sessionStorage.setItem(key, JSON.stringify(value));
-    }
-n    getSessionStorage(key: string): unknown {
-        const item = sessionStorage.getItem(key);
-        return item ? JSON.parse(item) : null;
-    }
-n    removeSessionStorage(key: string): void {
-        sessionStorage.removeItem(key);
-    }
-n    clearSessionStorage(): void {
-        sessionStorage.clear();
-    }
+  }
 }
