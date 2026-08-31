@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Hi_Trade.Models;
+using Hi_Trade.DAL.Entities;
 
 namespace Hi_Trade.DAL;
 
@@ -13,10 +14,23 @@ public class TechScannerContext : DbContext
     public DbSet<Plan> Plans { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Product> Products { get; set; }
+    public DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
+            entity.Property(e => e.Password).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.FullName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Address).HasMaxLength(500);
+            entity.Property(e => e.ProfilePictureUrl).HasMaxLength(1000);
+            entity.Property(e => e.Balance).HasPrecision(18, 2);
+            entity.HasIndex(e => e.Email).IsUnique();
+        });
 
         modelBuilder.Entity<InternetProvider>(entity =>
         {

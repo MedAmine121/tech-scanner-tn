@@ -1,58 +1,79 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { ApiService } from './api.service';
 import { StorageService } from './storage.service';
-
-export interface AppContext {
-  fullName?: string;
-  profilePictureUrl?: string;
-  expires?: string;
-  token?: string;
-  [key: string]: any;
-}
+import { Context } from '../2_Models/responses/context.model';
+import { Constants } from '../6_Common/constants';
+import { ResultType } from '../2_Models/common/result-type.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
-  user = signal<AppContext | null>(null);
+  user = signal<Context | null>(null);
   private api = inject(ApiService);
   private storage = inject(StorageService);
 
+  readonly isAuthenticated = computed<boolean>(() => {
+    const ctx = this.user();
+    if (!ctx || !ctx.token) return false;
+    if (!ctx.expires) return true;
+    return new Date(ctx.expires) > new Date();
+  });
+
+  readonly userDisplayName = computed<string>(() => {
+    const u = this.user();
+    return u?.fullName || u?.email?.split('@')[0] || 'User';
+  });
+
+  readonly userInitials = computed<string>(() => {
+    return this.getAvatarInitials(this.userDisplayName());
+  });
+
+  readonly showInitials = computed<boolean>(() => {
+    const ctx = this.user();
+    return !!ctx && !ctx.profilePictureUrl;
+  });
+
+  readonly userAvatar = computed<string>(() => {
+    const ctx = this.user();
+    if (!ctx) return '';
+    if (!ctx.profilePictureUrl) return this.userInitials();
+    let pic = ctx.profilePictureUrl;
+    pic = pic.replace(/^\/wwwroot\//, '').replace(/^wwwroot\//, '');
+    return pic;
+  });
+
   constructor() {
-    const stored = this.storage.getLocalStorage('app_context') as AppContext | null;
+    const stored = this.storage.getLocalStorage<Context>(Constants.CONTEXT_KEY);
     if (stored) {
       this.user.set(stored);
     }
   }
 
-  isAuthenticated(): boolean {
-    const ctx = this.user();
-    if (!ctx) return false;
-    if (!ctx.expires) return true;
-    return new Date(ctx.expires) > new Date();
-  }
-
   fetchCurrentUser(): void {
-    // Generic endpoint name; adapt to your API (e.g. 'auth/context' or 'users/me')
-    this.api.Get$<AppContext>('auth/context', false).subscribe({
+    this.api.Get$<Context>('user/fetch', false).subscribe({
       next: (res) => {
-        if (res?.success && res.data) {
-          this.user.set(res.data);
-          this.storage.setLocalStorage('app_context', res.data);
+        if (res && res.resultType === ResultType.Success && res.model) {
+          const current = this.user();
+          const updated: Context = {
+            ...res.model,
+            token: current?.token || res.model.token
+          };
+          this.setContext(updated);
         }
       },
       error: () => {
-        // swallow or notify as appropriate
+        // Handled by HTTP interceptor
       }
     });
   }
 
-  setContext(ctx: AppContext | null): void {
+  setContext(ctx: Context | null): void {
     this.user.set(ctx);
     if (ctx) {
-      this.storage.setLocalStorage('app_context', ctx);
+      this.storage.setLocalStorage(Constants.CONTEXT_KEY, ctx);
     } else {
-      this.storage.removeLocalStorage('app_context');
+      this.storage.removeLocalStorage(Constants.CONTEXT_KEY);
     }
   }
 
@@ -60,27 +81,13 @@ export class UserService {
     this.setContext(null);
   }
 
-  get showInitials(): boolean {
-    const ctx = this.user();
-    return !!ctx && !ctx.profilePictureUrl;
-  }
-
-  get userAvatar(): string {
-    const ctx = this.user();
-    if (!ctx) return '';
-    if (!ctx.profilePictureUrl) return this.getAvatarInitials(ctx.fullName || '');
-    let pic = ctx.profilePictureUrl;
-    // strip any wwwroot/ prefix if present
-    pic = pic.replace(/^\/wwwroot\//, '').replace(/^wwwroot\//, '');
-    // do not assume apiUrl prefix here; let callers resolve if needed
-    return pic;
-  }
-
-  private getAvatarInitials(name: string): string {
-    const initials = name
+  getAvatarInitials(name: string): string {
+    const initials = (name || '')
       .split(' ')
+      .filter(Boolean)
       .map((n) => n.charAt(0).toUpperCase())
       .join('');
-    return initials || '👤';
+    return initials.substring(0, 2) || 'TN';
   }
 }
+

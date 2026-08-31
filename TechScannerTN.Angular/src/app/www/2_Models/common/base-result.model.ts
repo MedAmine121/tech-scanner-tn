@@ -1,6 +1,7 @@
+import { ResultType } from './result-type.model';
+
 export interface BaseResult<T> {
-    success: boolean;
-    data?: T;
-    message?: string;
-    errors?: any;
+  model: T | null;
+  message: string | null;
+  resultType: ResultType;
 }

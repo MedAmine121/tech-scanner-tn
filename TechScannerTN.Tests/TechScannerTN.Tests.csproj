@@ -13,8 +13,16 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="Moq" Version="4.20.70" />
     <PackageReference Include="xunit" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TechScannerTN.BLL\TechScannerTN.BLL.csproj" />
+    <ProjectReference Include="..\TechScannerTN.DAL\TechScannerTN.DAL.csproj" />
+    <ProjectReference Include="..\TechScannerTN.Models\TechScannerTN.Models.csproj" />
+    <ProjectReference Include="..\TechScannerTN.Services\TechScannerTN.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,3 +30,4 @@
   </ItemGroup>
 
 </Project>
+

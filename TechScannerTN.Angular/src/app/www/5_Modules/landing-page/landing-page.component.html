@@ -1,0 +1,273 @@
+<app-nav-bar></app-nav-bar>
+
+<main class="landing-main">
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-glow-bg"></div>
+    <div class="hero-container">
+      <div class="hero-badge-pill">
+        <span class="pulse-circle"></span>
+        <span class="badge-text">Tunisia's Live Tech & Telecom Price Radar</span>
+      </div>
+
+      <h1 class="hero-title">
+        Never Overpay for Tech <br>
+        <span class="gradient-text">in Tunisia Again.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Real-time price comparisons across <strong>MyTek</strong>, <strong>TunisiaNet</strong>, <strong>SpaceNet</strong>, and national ISP fiber plans. Track verified price drops, spot fake promos, and save hundreds of Dinars.
+      </p>
+
+      <div class="hero-cta-group">
+        @if (!isAuth()) {
+          <a [routerLink]="['/signup']" class="btn-hero-primary">
+            <span>Start Comparing Free</span>
+            <svg class="cta-arrow" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </a>
+          <a [routerLink]="['/login']" class="btn-hero-secondary">
+            <span>Sign In to Your Alerts</span>
+          </a>
+        } @else {
+          <a href="#hardware-deals" class="btn-hero-primary">
+            <span>Explore Live Deals Scanner</span>
+            <svg class="cta-arrow" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </a>
+        }
+      </div>
+
+      <!-- Quick Metrics Ribbon -->
+      <div class="metrics-ribbon">
+        <div class="metric-item">
+          <span class="metric-val">45,000+</span>
+          <span class="metric-lbl">Products Scanned Daily</span>
+        </div>
+        <div class="metric-sep"></div>
+        <div class="metric-item">
+          <span class="metric-val">3 Retailers</span>
+          <span class="metric-lbl">MyTek • TunisiaNet • SpaceNet</span>
+        </div>
+        <div class="metric-sep"></div>
+        <div class="metric-item">
+          <span class="metric-val">4 ISPs</span>
+          <span class="metric-lbl">Topnet • TT • Orange • Ooredoo</span>
+        </div>
+        <div class="metric-sep"></div>
+        <div class="metric-item">
+          <span class="metric-val">18.4%</span>
+          <span class="metric-lbl">Avg. User Savings</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Deal Comparison Showcase -->
+  <section id="hardware-deals" class="deals-showcase-section">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">LIVE PRICE INTELLIGENCE</span>
+        <h2 class="section-title">See How Much Tunisians Save Right Now</h2>
+        <p class="section-subtitle">Prices updated automatically every few hours. Here is a preview of current verified price differences between major stores.</p>
+
+        <!-- Category Tabs -->
+        <div class="category-tabs">
+          <button (click)="setCategoryTab('laptops')" [class.active]="activeCategoryTab() === 'laptops'" class="tab-btn" type="button">
+            <span>💻 Laptops</span>
+          </button>
+          <button (click)="setCategoryTab('components')" [class.active]="activeCategoryTab() === 'components'" class="tab-btn" type="button">
+            <span>🎮 PC Hardware & GPUs</span>
+          </button>
+          <button (click)="setCategoryTab('peripherals')" [class.active]="activeCategoryTab() === 'peripherals'" class="tab-btn" type="button">
+            <span>🖥️ Screens & Monitors</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Comparison Cards Grid -->
+      <div class="deals-grid">
+        @for (deal of filteredDeals(); track deal.id) {
+          <div class="deal-card">
+            <div class="deal-card-header">
+              <div class="deal-icon-badge">{{ deal.image }}</div>
+              <div class="savings-tag">Save up to {{ deal.savings }} TND</div>
+            </div>
+
+            <h3 class="deal-title">{{ deal.title }}</h3>
+
+            <div class="deal-best-price-box">
+              <div class="best-price-label">Best Price Found:</div>
+              <div class="best-price-row">
+                <span class="price-amount">{{ deal.bestPrice | number:'1.0-2' }} <span class="currency">TND</span></span>
+                <span class="store-winner-badge">at {{ deal.bestStore }}</span>
+              </div>
+            </div>
+
+            <div class="price-breakdown">
+              <div class="breakdown-title">Store Comparison:</div>
+              @for (p of deal.prices; track p.store) {
+                <div class="store-price-row" [class.highlight-best]="p.isBest">
+                  <span class="store-name">{{ p.store }}</span>
+                  <span class="store-price">
+                    {{ p.price | number:'1.0-2' }} TND
+                    @if (p.isBest) {
+                      <span class="lowest-label">Lowest</span>
+                    }
+                  </span>
+                </div>
+              }
+            </div>
+
+            <div class="deal-card-footer">
+              <a [routerLink]="['/signup']" class="btn-card-action">
+                <span>Track Price Drops</span>
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </a>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ISP Plans Comparison Section -->
+  <section id="isp-plans" class="isp-section">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag telecom-tag">TELECOM & INTERNET RADAR</span>
+        <h2 class="section-title">Compare Fiber & ADSL Plans in Tunisia</h2>
+        <p class="section-subtitle">Side-by-side speeds, monthly rates, and technologies across Topnet, Tunisie Telecom, Orange, and Ooredoo.</p>
+      </div>
+
+      <div class="isp-grid">
+        @for (plan of ispPlans(); track plan.planName) {
+          <div class="isp-card" [class.featured-isp]="plan.featured">
+            @if (plan.featured) {
+              <div class="featured-ribbon">Most Popular Fiber</div>
+            }
+            <div class="isp-provider-badge">{{ plan.provider }}</div>
+            <h3 class="isp-plan-name">{{ plan.planName }}</h3>
+            <div class="isp-speed-display">
+              <span class="speed-val">{{ plan.speed }}</span>
+              <span class="speed-type">{{ plan.type }}</span>
+            </div>
+
+            <div class="isp-price-box">
+              <span class="isp-price-num">{{ plan.price | number:'1.2-2' }}</span>
+              <span class="isp-period">TND / month</span>
+            </div>
+
+            <ul class="isp-features">
+              <li>✓ Scraped directly from official portal</li>
+              <li>✓ Unlimited Downloads</li>
+              <li>✓ Wi-Fi Modem Included</li>
+            </ul>
+
+            <a [routerLink]="['/signup']" class="btn-isp-action">Compare All Plans</a>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Features Grid -->
+  <section id="features" class="features-section">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">WHY TECHSCANNER TN</span>
+        <h2 class="section-title">Built Specially for Tunisian Tech Shoppers</h2>
+        <p class="section-subtitle">Stop opening 15 browser tabs every time you want to buy hardware or subscribe to an internet plan.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-box">
+          <div class="feature-icon icon-cyan">⚡</div>
+          <h3 class="feature-heading">Multi-Store Price Aggregator</h3>
+          <p class="feature-text">
+            Our background scraping engine extracts live stock, promotional prices, and product codes every 6 hours from MyTek, TunisiaNet, and SpaceNet.
+          </p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon icon-purple">📉</div>
+          <h3 class="feature-heading">Fake Promo Detection</h3>
+          <p class="feature-text">
+            Stores frequently inflate prices before Black Friday or Back-to-School discounts. Our 90-day price history proves if a sale is genuinely cheap.
+          </p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon icon-green">📦</div>
+          <h3 class="feature-heading">Stock & Availability Alerts</h3>
+          <p class="feature-text">
+            Looking for a specific GPU or MacBook model? Get notified the moment it comes back in stock at any participating store.
+          </p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon icon-amber">🌐</div>
+          <h3 class="feature-heading">ISP Plan Intelligence</h3>
+          <p class="feature-text">
+            Compare Fiber Optic (FTTH), VDSL, and 4G/5G Home Box offers across all national telecommunication operators in one unified view.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Flow -->
+  <section class="how-it-works-section">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">HOW IT WORKS</span>
+        <h2 class="section-title">3 Simple Steps to Maximum Savings</h2>
+      </div>
+
+      <div class="steps-row">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <h3 class="step-title">Search Any Device or Plan</h3>
+          <p class="step-desc">Type your desired laptop, graphics card, monitor, or internet speed into TechScannerTN.</p>
+        </div>
+        <div class="step-arrow-divider">→</div>
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <h3 class="step-title">Compare Live Prices</h3>
+          <p class="step-desc">Instantly see prices across all major Tunisian stores side-by-side with lowest-price badges.</p>
+        </div>
+        <div class="step-arrow-divider">→</div>
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <h3 class="step-title">Buy & Save Dinars</h3>
+          <p class="step-desc">Click directly to the retailer offering the lowest price and keep your hard-earned money.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="cta-banner-section">
+    <div class="section-container">
+      <div class="cta-banner-card">
+        <div class="cta-banner-content">
+          <h2 class="cta-banner-title">Ready to Stop Overpaying for Tech?</h2>
+          <p class="cta-banner-subtitle">Join thousands of Tunisians shopping with full price transparency. It takes less than 30 seconds to sign up.</p>
+          <div class="cta-banner-actions">
+            @if (!isAuth()) {
+              <a [routerLink]="['/signup']" class="btn-banner-primary">Create Your Free Account</a>
+              <a [routerLink]="['/login']" class="btn-banner-secondary">Sign In</a>
+            } @else {
+              <a href="#hardware-deals" class="btn-banner-primary">Browse Today's Deals</a>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<app-footer></app-footer>
+

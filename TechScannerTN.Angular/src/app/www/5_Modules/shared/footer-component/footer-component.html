@@ -1,0 +1,72 @@
+<footer class="ts-footer">
+  <div class="footer-container">
+    <div class="footer-grid">
+      <!-- Column 1: Brand Info -->
+      <div class="footer-col brand-col">
+        <div class="footer-brand">
+          <div class="brand-icon-wrapper">
+            <svg class="brand-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"/>
+              <path d="M12 7V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="3" fill="currentColor"/>
+            </svg>
+          </div>
+          <span class="brand-text">TechScanner<span class="brand-badge">TN</span></span>
+        </div>
+        <p class="footer-desc">
+          Tunisia's independent tech price aggregator and ISP plan comparator. We crawl MyTek, TunisiaNet, SpaceNet, and national telecommunication operators around the clock so you never overpay.
+        </p>
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span class="status-text">All Scanners Operational • Automated Updates Every 6h</span>
+        </div>
+      </div>
+
+      <!-- Column 2: Retailers Scanned -->
+      <div class="footer-col">
+        <h4 class="footer-heading">Tracked Retailers</h4>
+        <ul class="footer-links">
+          <li><a href="https://www.mytek.tn" target="_blank" rel="noopener">MyTek Tunisia</a></li>
+          <li><a href="https://www.tunisianet.com.tn" target="_blank" rel="noopener">TunisiaNet</a></li>
+          <li><a href="https://www.spacenet.tn" target="_blank" rel="noopener">SpaceNet Tunisia</a></li>
+          <li><span class="badge-coming-soon">More retailers coming</span></li>
+        </ul>
+      </div>
+
+      <!-- Column 3: ISP Providers -->
+      <div class="footer-col">
+        <h4 class="footer-heading">Internet Providers</h4>
+        <ul class="footer-links">
+          <li><span>Topnet Fiber & VDSL</span></li>
+          <li><span>Tunisie Telecom WICI / Rapido</span></li>
+          <li><span>Orange Tunisia Flybox & Fixe</span></li>
+          <li><span>Ooredoo Tunisia Fiber</span></li>
+        </ul>
+      </div>
+
+      <!-- Column 4: Quick Links & Account -->
+      <div class="footer-col">
+        <h4 class="footer-heading">Platform</h4>
+        <ul class="footer-links">
+          <li><a [routerLink]="['/']">Home Overview</a></li>
+          <li><a [routerLink]="['/login']">Member Sign In</a></li>
+          <li><a [routerLink]="['/signup']">Create Free Account</a></li>
+          <li><a href="#features">Smart Price Alerts</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="footer-bottom">
+      <p class="copyright">
+        © {{ currentYear() }} TechScannerTN. Built for the Tunisian tech community. All trademarks belong to their respective owners.
+      </p>
+      <div class="footer-tags">
+        <span class="tag">Tunisia Tech</span>
+        <span class="tag">Smart Buying</span>
+        <span class="tag">Real-Time Scraping</span>
+      </div>
+    </div>
+  </div>
+</footer>
+

@@ -1,12 +1,10 @@
 import { ErrorHandler, Injectable } from "@angular/core";
+
 @Injectable({
-    providedIn: 'root'
+  providedIn: 'root'
 })
-export class GlobalErrorHandler implements ErrorHandler{
-    handleError(error: unknown): void {
-        throw new Error("Method not implemented.");
-    }
-    normalize(error: unknown): string {
-        return '';
-    }
+export class GlobalErrorHandler implements ErrorHandler {
+  handleError(error: unknown): void {
+    console.error('Unhandled Application Error:', error);
+  }
 }
