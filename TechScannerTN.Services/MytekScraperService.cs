@@ -1,13 +1,15 @@
-using Hi_Trade.DAL;
-using Hi_Trade.Models;
+using Hi_Trade.Models.DTOs;
 using HtmlAgilityPack;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Hi_Trade.Services;
 
@@ -18,48 +20,49 @@ public sealed class MytekScraperService : IMytekScraperService, IWebScraper
     private static readonly Uri MytekBaseUri = new("https://www.mytek.tn/");
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<MytekScraperService> _logger;
-    private readonly TechScannerContext _context;
-    private readonly IDbContextFactory<TechScannerContext> _contextFactory;
+    private readonly IProductIngestionService _ingestionService;
 
-    public string ProviderName { get; } = "Mytek";
+    public string ProviderName { get; } = "MyTek";
+
     public MytekScraperService(
         IHttpClientFactory httpClientFactory,
         ILogger<MytekScraperService> logger,
-        TechScannerContext context,
-        IDbContextFactory<TechScannerContext> contextFactory)
+        IProductIngestionService ingestionService)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _context = context;
-        _contextFactory = contextFactory;
+        _ingestionService = ingestionService;
     }
 
-    public async Task<List<Product>> ScrapeAsync()
+    public async Task<int> ScrapeAsync(CancellationToken cancellationToken = default)
     {
+        var session = await _ingestionService.StartScrapeSessionAsync("MYTEK", cancellationToken);
+        var totalIngested = 0;
+
         try
         {
-            var categories = (await GetCategoriesAsync()).ToArray();
-            await StoreCategoriesAsync(categories);
+            var categories = (await GetCategoriesAsync(cancellationToken)).ToArray();
+            await _ingestionService.StoreRetailerCategoriesAsync("MYTEK", categories, cancellationToken);
 
-            var products = new ConcurrentBag<Product>();
             var processedReferences = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
 
             await Parallel.ForEachAsync(
                 categories.Where(category => !string.IsNullOrWhiteSpace(category.Url)),
-                new ParallelOptions { MaxDegreeOfParallelism = MaxDegreeOfParallelism },
-                async (category, cancellationToken) =>
+                new ParallelOptions { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken },
+                async (category, ct) =>
                 {
-                    await ScrapeCategoryAsync(category, products, processedReferences, cancellationToken);
+                    await ScrapeCategoryAsync(category, processedReferences, () => Interlocked.Increment(ref totalIngested), ct);
                 });
 
-            var productList = products.ToList();
-            _logger.LogInformation("Mytek scraping completed. Found {ProductCount} unique products.", products.Count);
-            return productList;
+            _logger.LogInformation("Mytek scraping completed. Ingested {ProductCount} unique products.", totalIngested);
+            await _ingestionService.CompleteScrapeSessionAsync(session.Id, totalIngested, 0, 0, 0, null, cancellationToken);
+            return totalIngested;
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Error scraping Mytek categories and products.");
-            return [];
+            await _ingestionService.CompleteScrapeSessionAsync(session.Id, totalIngested, 0, 0, 0, exception.Message, cancellationToken);
+            return totalIngested;
         }
     }
 
@@ -135,40 +138,10 @@ public sealed class MytekScraperService : IMytekScraperService, IWebScraper
             .ToArray();
     }
 
-    private async Task StoreCategoriesAsync(IEnumerable<CategoryDto> categories)
-    {
-        var now = DateTime.UtcNow;
-
-        foreach (var category in categories.Where(category => !string.IsNullOrWhiteSpace(category.Url)))
-        {
-            var existingCategory = await _context.Categories.FindAsync(category.Url);
-
-            if (existingCategory is null)
-            {
-                _context.Categories.Add(new Category
-                {
-                    Url = category.Url,
-                    ParentCategory = category.ParentCategory,
-                    Title = category.Title,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                });
-            }
-            else
-            {
-                existingCategory.ParentCategory = category.ParentCategory;
-                existingCategory.Title = category.Title;
-                existingCategory.UpdatedAt = now;
-            }
-        }
-
-        await _context.SaveChangesAsync();
-    }
-
     private async Task ScrapeCategoryAsync(
         CategoryDto category,
-        ConcurrentBag<Product> products,
         ConcurrentDictionary<string, byte> processedReferences,
+        Action onProductIngested,
         CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient(ClientName);
@@ -205,51 +178,27 @@ public sealed class MytekScraperService : IMytekScraperService, IWebScraper
             var document = new HtmlDocument();
             document.LoadHtml(html);
 
-            foreach (var card in document.DocumentNode.SelectNodes(
-                         "//div[@data-id]")
-                     ?? Enumerable.Empty<HtmlNode>())
+            foreach (var card in document.DocumentNode.SelectNodes("//div[@data-id]") ?? Enumerable.Empty<HtmlNode>())
             {
-                var product = ParseProduct(card, category);
-                if (product is not null && processedReferences.TryAdd(product.ProductReference, 0))
+                var item = ParseProduct(card, category);
+                if (item is not null && processedReferences.TryAdd(item.RetailerSku, 0))
                 {
-                    await StoreProductAsync(product);
+                    await _ingestionService.IngestProductAsync(item, cancellationToken);
+                    onProductIngested();
                 }
             }
 
             pageUrl = GetNextPageUrl(document);
         }
     }
-    private async Task StoreProductAsync(Product product)
-    {
-        DateTime now = DateTime.UtcNow;
-        product.ScrapedAt = new DateTime(
-            now.Year,
-            now.Month,
-            now.Day,
-            now.Hour,
-            0,
-            0
-        );
-        TechScannerContext newContext = await _contextFactory.CreateDbContextAsync();
-        bool exists = await newContext.Products.AnyAsync(p => p.ProductId == product.ProductId && p.ScrapedAt.Equals(product.ScrapedAt));
-        if (!exists)
-        {
-            newContext.Products.Add(product);
-            await newContext.SaveChangesAsync();
-            _logger.LogInformation($"Stored Mytek product: {product.ProductReference}");
-        }
-    }
 
-    private static Product? ParseProduct(HtmlNode card, CategoryDto category)
+    private static ScrapedProductItem? ParseProduct(HtmlNode card, CategoryDto category)
     {
-        // The product information is stored directly on the product <div>
-        // through data-* attributes.
         var productId = card.GetAttributeValue("data-id", string.Empty);
         var reference = card.GetAttributeValue("data-sku", string.Empty);
 
         var link = card.SelectSingleNode(".//a[@href]");
 
-        // Fallback to the existing logic in case the HTML structure changes.
         reference = FirstNonEmpty(
             reference,
             card.GetAttributeValue("data-product-sku", string.Empty),
@@ -269,29 +218,23 @@ public sealed class MytekScraperService : IMytekScraperService, IWebScraper
             link?.GetAttributeValue("href", string.Empty));
 
         var imageUrl = card.GetAttributeValue("data-image", string.Empty);
-
         var erpStock = card.GetAttributeValue("data-erpstock", string.Empty);
-
         var manufacturer = card.GetAttributeValue("data-manufacturer", string.Empty);
-
         var description = card.GetAttributeValue("data-description", string.Empty);
 
-        var price = card.GetAttributeValue("data-price", string.Empty);
-        var finalPrice = card.GetAttributeValue("data-final-price", string.Empty);
+        var priceStr = card.GetAttributeValue("data-price", string.Empty);
+        var finalPriceStr = card.GetAttributeValue("data-final-price", string.Empty);
 
-        // Fallbacks for price/stock if the data-* attributes are missing.
-        if (string.IsNullOrWhiteSpace(finalPrice))
+        if (string.IsNullOrWhiteSpace(finalPriceStr))
         {
             var priceNode = card.SelectSingleNode(".//*[@data-price-amount]")
                 ?? card.SelectSingleNode(".//*[@itemprop='price']");
 
-            finalPrice = priceNode?.GetAttributeValue(
-                "data-price-amount",
-                string.Empty);
+            finalPriceStr = priceNode?.GetAttributeValue("data-price-amount", string.Empty);
 
-            if (string.IsNullOrWhiteSpace(finalPrice))
+            if (string.IsNullOrWhiteSpace(finalPriceStr))
             {
-                finalPrice = priceNode?.InnerText;
+                finalPriceStr = priceNode?.InnerText;
             }
         }
 
@@ -303,41 +246,32 @@ public sealed class MytekScraperService : IMytekScraperService, IWebScraper
             !stockClass.Contains("unavailable", StringComparison.OrdinalIgnoreCase)
             && !stockClass.Contains("out-of-stock", StringComparison.OrdinalIgnoreCase);
 
-        // If ERP stock exists, use it to determine availability.
         if (!string.IsNullOrWhiteSpace(erpStock))
         {
-            isInStock = !erpStock.Equals(
-                    "Rupture de stock",
-                    StringComparison.OrdinalIgnoreCase)
-                && !erpStock.Equals(
-                    "Out of stock",
-                    StringComparison.OrdinalIgnoreCase)
-                && !erpStock.Equals(
-                    "Indisponible",
-                    StringComparison.OrdinalIgnoreCase);
+            isInStock = !erpStock.Equals("Rupture de stock", StringComparison.OrdinalIgnoreCase)
+                && !erpStock.Equals("Out of stock", StringComparison.OrdinalIgnoreCase)
+                && !erpStock.Equals("Indisponible", StringComparison.OrdinalIgnoreCase);
         }
 
-        return new Product
-        {
-            ProductId = CleanText(productId),
-            ProductReference = CleanText(reference),
+        var regularPrice = ParsePrice(priceStr);
+        var finalPrice = ParsePrice(finalPriceStr);
 
+        return new ScrapedProductItem
+        {
+            RetailerCode = "MYTEK",
+            RetailerProductId = CleanText(productId),
+            RetailerSku = CleanText(reference),
             Title = CleanText(title),
             ProductUrl = ToAbsoluteUrl(productUrl),
-
             ImageUrl = ToAbsoluteUrl(imageUrl),
-
-            Price = ParsePrice(price),
-            FinalPrice = ParsePrice(finalPrice),
-
+            RegularPrice = regularPrice > 0 ? regularPrice : finalPrice,
+            FinalPrice = finalPrice,
+            IsInStock = isInStock,
+            StockStatusText = CleanText(erpStock),
             Manufacturer = CleanText(manufacturer),
             Description = CleanText(description),
-            ErpStock = CleanText(erpStock),
-
-            IsInStock = isInStock,
-
-            CategoryId = category.Url,
-            CategoryName = category.Title
+            RawCategory = category.Title,
+            CategoryUrl = category.Url
         };
     }
 
@@ -397,3 +331,4 @@ public sealed class MytekScraperService : IMytekScraperService, IWebScraper
 
     private static string CleanText(string? value) => HtmlEntity.DeEntitize(value ?? string.Empty).Trim();
 }
+

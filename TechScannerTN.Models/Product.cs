@@ -1,31 +1,73 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Hi_Trade.Models;
 
-public sealed class Product
+/// <summary>
+/// Represents a canonical (master) product catalog item.
+/// Multiple retailer listings (offers) map to this canonical product.
+/// </summary>
+public class Product
 {
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
-    public string ProductId { get; set; } = string.Empty;
-    public string ProductReference { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(500)]
     public string Title { get; set; } = string.Empty;
-    public string ProductUrl { get; set; } = string.Empty;
-    public string ImageUrl { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-    public decimal FinalPrice { get; set; }
-    public bool IsInStock { get; set; }
-    public string CategoryId { get; set; } = string.Empty;
-    public string CategoryName { get; set; } = string.Empty;
-    public Providers Provider { get; set; }
-    public DateTime ScrapedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Clean, normalized manufacturer reference / SKU (uppercase, alphanumeric only).
+    /// Used for automatic cross-store matching.
+    /// </summary>
+    [MaxLength(150)]
+    public string? NormalizedSku { get; set; }
+
+    /// <summary>
+    /// European Article Number / UPC Barcode if available.
+    /// </summary>
+    [MaxLength(50)]
+    public string? Ean { get; set; }
+
+    public int? BrandId { get; set; }
+    public Brand? Brand { get; set; }
+
+    public int? CategoryId { get; set; }
     public Category? Category { get; set; }
-    public string Manufacturer { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string ErpStock { get; set; } = string.Empty;
+
+    [MaxLength(1000)]
+    public string? PrimaryImageUrl { get; set; }
+
+    public string? Description { get; set; }
+
+    public string? Specifications { get; set; }
+
+    // Pre-computed price comparison aggregates for sub-millisecond query performance
+    [Column(TypeName = "decimal(18, 3)")]
+    public decimal MinPrice { get; set; }
+
+    [Column(TypeName = "decimal(18, 3)")]
+    public decimal MaxPrice { get; set; }
+
+    public int? CheapestRetailerId { get; set; }
+    public Retailer? CheapestRetailer { get; set; }
+
+    [Column(TypeName = "decimal(18, 3)")]
+    public decimal HistoricalLowPrice { get; set; }
+
+    [Column(TypeName = "decimal(18, 3)")]
+    public decimal HistoricalHighPrice { get; set; }
+
+    public int OffersCount { get; set; }
+
+    public DateTime LastPriceCheckAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    public ICollection<ProductListing> Listings { get; set; } = new List<ProductListing>();
+    public ICollection<PriceHistory> PriceHistories { get; set; } = new List<PriceHistory>();
 }
-public enum Providers
-{
-    Mytek,
-    Tunisianet,
-    SpaceNet
-}
+
