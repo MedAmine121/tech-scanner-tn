@@ -1,9 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
-using Hi_Trade.DAL;
-using Hi_Trade.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Hi_Trade.Services;
 
@@ -27,7 +28,7 @@ public class WebScraperHostedService : BackgroundService
     {
         _logger.LogInformation("WebScraperHostedService starting");
 
-        // Run scraper immediately on startup
+        // Run scraper on startup
         await PerformScrapeAsync(stoppingToken);
 
         // Then schedule periodic runs
@@ -42,13 +43,13 @@ public class WebScraperHostedService : BackgroundService
 
     private async Task PerformScrapeAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting scheduled web scraping");
+        _logger.LogInformation("Starting scheduled multi-site product scraping");
 
         try
         {
             using var scope = _serviceProvider.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<TechScannerContext>();
             var scrapers = scope.ServiceProvider.GetRequiredService<IEnumerable<IWebScraper>>();
+
             foreach (var scraper in scrapers)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -56,37 +57,30 @@ public class WebScraperHostedService : BackgroundService
                     break;
                 }
 
-                _logger.LogInformation("Scraping {ProviderName}", scraper.ProviderName);
+                _logger.LogInformation("Beginning scrape for {ProviderName}", scraper.ProviderName);
 
                 try
                 {
-                    var plans = await scraper.ScrapeAsync();
-
-                    if (scraper.ProviderName is "Mytek" or "TunisiaNet")
-                    {
-                        _logger.LogInformation("{ProviderName} categories were scraped and stored.", scraper.ProviderName);
-                    }
-                    else
-                    {
-                        _logger.LogError("No plans found for {ProviderName}", scraper.ProviderName);
-                    }
+                    var count = await scraper.ScrapeAsync(cancellationToken);
+                    _logger.LogInformation("Completed scrape for {ProviderName}: {Count} products ingested/updated.", scraper.ProviderName, count);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error scraping {ProviderName}", scraper.ProviderName);
                 }
 
-                // Small delay between provider scrapes
-                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+                // Friendly delay between retailer scrapes
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
             }
 
-            _logger.LogInformation("Scheduled web scraping completed");
+            _logger.LogInformation("All scheduled retailer scrapes completed successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in PerformScrapeAsync");
+            _logger.LogError(ex, "Fatal error in PerformScrapeAsync");
         }
     }
+
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("WebScraperHostedService stopping");
@@ -100,3 +94,4 @@ public class WebScraperHostedService : BackgroundService
         base.Dispose();
     }
 }
+

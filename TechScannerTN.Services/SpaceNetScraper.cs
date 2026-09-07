@@ -1,13 +1,15 @@
-using Hi_Trade.DAL;
-using Hi_Trade.Models;
 using HtmlAgilityPack;
-using Microsoft.EntityFrameworkCore;
+using Hi_Trade.Models.DTOs;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Hi_Trade.Services;
 
@@ -19,49 +21,49 @@ public sealed class SpacenetScraperService : IWebScraper
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<SpacenetScraperService> _logger;
-    private readonly TechScannerContext _context;
-    private readonly IDbContextFactory<TechScannerContext> _contextFactory;
+    private readonly IProductIngestionService _ingestionService;
 
     public string ProviderName { get; } = "SpaceNet";
 
     public SpacenetScraperService(
         IHttpClientFactory httpClientFactory,
         ILogger<SpacenetScraperService> logger,
-        TechScannerContext context,
-        IDbContextFactory<TechScannerContext> contextFactory)
+        IProductIngestionService ingestionService)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _context = context;
-        _contextFactory = contextFactory;
+        _ingestionService = ingestionService;
     }
 
-    public async Task<List<Product>> ScrapeAsync()
+    public async Task<int> ScrapeAsync(CancellationToken cancellationToken = default)
     {
+        var session = await _ingestionService.StartScrapeSessionAsync("SPACENET", cancellationToken);
+        var totalIngested = 0;
+
         try
         {
-            var categories = (await GetCategoriesAsync()).ToArray();
-            await StoreCategoriesAsync(categories);
+            var categories = (await GetCategoriesAsync(cancellationToken)).ToArray();
+            await _ingestionService.StoreRetailerCategoriesAsync("SPACENET", categories, cancellationToken);
 
-            var products = new ConcurrentBag<Product>();
             var processedReferences = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
 
             await Parallel.ForEachAsync(
                 categories.Where(c => !string.IsNullOrWhiteSpace(c.Url)),
-                new ParallelOptions { MaxDegreeOfParallelism = MaxDegreeOfParallelism },
-                async (category, cancellationToken) =>
+                new ParallelOptions { MaxDegreeOfParallelism = MaxDegreeOfParallelism, CancellationToken = cancellationToken },
+                async (category, ct) =>
                 {
-                    await ScrapeCategoryAsync(category, products, processedReferences, cancellationToken);
+                    await ScrapeCategoryAsync(category, processedReferences, () => Interlocked.Increment(ref totalIngested), ct);
                 });
 
-            var productList = products.ToList();
-            _logger.LogInformation("Spacenet scraping completed. Found {ProductCount} unique products.", productList.Count);
-            return productList;
+            _logger.LogInformation("Spacenet scraping completed. Ingested {ProductCount} unique products.", totalIngested);
+            await _ingestionService.CompleteScrapeSessionAsync(session.Id, totalIngested, 0, 0, 0, null, cancellationToken);
+            return totalIngested;
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Error scraping Spacenet categories and products.");
-            return [];
+            await _ingestionService.CompleteScrapeSessionAsync(session.Id, totalIngested, 0, 0, 0, exception.Message, cancellationToken);
+            return totalIngested;
         }
     }
 
@@ -99,13 +101,10 @@ public sealed class SpacenetScraperService : IWebScraper
         document.LoadHtml(html);
 
         var categories = new List<CategoryDto>();
-
-        // The vertical menu is inside <div id="sp-vermegamenu">
         var menuNode = document.DocumentNode.SelectSingleNode("//div[@id='sp-vermegamenu']");
         if (menuNode == null)
             return categories;
 
-        // Top-level categories are <li class="item-1 vertical-cat parent">
         var topLevelItems = menuNode.SelectNodes(".//li[contains(@class,'item-1') and contains(@class,'vertical-cat') and contains(@class,'parent')]")
             ?? Enumerable.Empty<HtmlNode>();
 
@@ -118,17 +117,15 @@ public sealed class SpacenetScraperService : IWebScraper
             var parentCategory = CleanText(parentLink.InnerText);
             var parentUrl = parentLink.GetAttributeValue("href", string.Empty);
 
-            // Add the parent category itself if it has a URL
             if (!string.IsNullOrWhiteSpace(parentUrl))
             {
                 categories.Add(new CategoryDto(
-                    string.Empty, // no parent for top level
+                    string.Empty,
                     parentCategory,
                     ToAbsoluteUrl(parentUrl)
                 ));
             }
 
-            // Look for subcategories inside the dropdown
             var subItems = topItem.SelectNodes(".//div[contains(@class,'dropdown-menu')]//li[contains(@class,'cat-child')]")
                 ?? Enumerable.Empty<HtmlNode>();
 
@@ -150,7 +147,6 @@ public sealed class SpacenetScraperService : IWebScraper
                     ));
                 }
 
-                // Additionally, look for third-level categories (if any)
                 var thirdLevelItems = subItem.SelectNodes(".//ul[contains(@class,'level-3')]//li[contains(@class,'item-3')]//a")
                     ?? Enumerable.Empty<HtmlNode>();
 
@@ -176,40 +172,10 @@ public sealed class SpacenetScraperService : IWebScraper
             .ToArray();
     }
 
-    private async Task StoreCategoriesAsync(IEnumerable<CategoryDto> categories)
-    {
-        var now = DateTime.UtcNow;
-
-        foreach (var category in categories.Where(c => !string.IsNullOrWhiteSpace(c.Url)))
-        {
-            var existingCategory = await _context.Categories.FindAsync(category.Url);
-
-            if (existingCategory is null)
-            {
-                _context.Categories.Add(new Category
-                {
-                    Url = category.Url,
-                    ParentCategory = category.ParentCategory,
-                    Title = category.Title,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                });
-            }
-            else
-            {
-                existingCategory.ParentCategory = category.ParentCategory;
-                existingCategory.Title = category.Title;
-                existingCategory.UpdatedAt = now;
-            }
-        }
-
-        await _context.SaveChangesAsync();
-    }
-
     private async Task ScrapeCategoryAsync(
         CategoryDto category,
-        ConcurrentBag<Product> products,
         ConcurrentDictionary<string, byte> processedReferences,
+        Action onProductIngested,
         CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient(ClientName);
@@ -246,17 +212,17 @@ public sealed class SpacenetScraperService : IWebScraper
             var document = new HtmlDocument();
             document.LoadHtml(html);
 
-            // Each product is inside a div with class "field-product-item item-inner product-miniature"
             var productNodes = document.DocumentNode.SelectNodes(
                 "//div[contains(@class,'field-product-item') and contains(@class,'product-miniature')]")
                 ?? Enumerable.Empty<HtmlNode>();
 
             foreach (var card in productNodes)
             {
-                var product = ParseProduct(card, category);
-                if (product is not null && processedReferences.TryAdd(product.ProductReference, 0))
+                var item = ParseProduct(card, category);
+                if (item is not null && processedReferences.TryAdd(item.RetailerSku, 0))
                 {
-                    await StoreProductAsync(product);
+                    await _ingestionService.IngestProductAsync(item, cancellationToken);
+                    onProductIngested();
                 }
             }
 
@@ -264,69 +230,30 @@ public sealed class SpacenetScraperService : IWebScraper
         }
     }
 
-    private async Task StoreProductAsync(Product product)
+    private static ScrapedProductItem? ParseProduct(HtmlNode card, CategoryDto category)
     {
-        DateTime now = DateTime.UtcNow;
-        product.ScrapedAt = new DateTime(
-            now.Year,
-            now.Month,
-            now.Day,
-            now.Hour,
-            0,
-            0
-        );
-
-        await using var newContext = await _contextFactory.CreateDbContextAsync();
-        bool exists = await newContext.Products.AnyAsync(p =>
-            p.ProductId == product.ProductId && p.ScrapedAt.Equals(product.ScrapedAt));
-
-        if (!exists)
-        {
-            newContext.Products.Add(product);
-            await newContext.SaveChangesAsync();
-            _logger.LogInformation($"Stored Spacenet product: {product.ProductReference}");
-        }
-    }
-
-    private static Product? ParseProduct(HtmlNode card, CategoryDto category)
-    {
-        // Get product ID from the data-id-product attribute (if present)
         var productId = card.GetAttributeValue("data-id-product", string.Empty);
-
-        // Reference is inside <div class="product-reference"> <span>
         var referenceNode = card.SelectSingleNode(".//div[contains(@class,'product-reference')]//span");
         var reference = referenceNode?.InnerText?.Trim() ?? string.Empty;
 
-        // Title is inside <h2 class="product_name"><a>
         var titleNode = card.SelectSingleNode(".//h2[contains(@class,'product_name')]//a");
         var title = CleanText(titleNode?.InnerText);
-
-        // Product URL from the same anchor
         var productUrl = titleNode?.GetAttributeValue("href", string.Empty) ?? string.Empty;
 
-        // Image: inside <a class="thumbnail">, first img with class "cover_image"
         var imageNode = card.SelectSingleNode(".//a[contains(@class,'thumbnail')]//span[contains(@class,'cover_image')]//img");
         var imageUrl = imageNode?.GetAttributeValue("src", string.Empty) ?? string.Empty;
 
-        // Price parsing
         var priceSpan = card.SelectSingleNode(".//div[contains(@class,'product-price-and-shipping')]//span[contains(@class,'price')]");
         var regularPriceSpan = card.SelectSingleNode(".//div[contains(@class,'product-price-and-shipping')]//span[contains(@class,'regular-price')]");
 
         decimal price = ParsePrice(priceSpan?.InnerText);
         decimal regularPrice = ParsePrice(regularPriceSpan?.InnerText);
         decimal finalPrice = price;
-        // If regular price exists and is higher, then it's a discount; final price is the price span
-        if (regularPrice > 0 && regularPrice > price)
+        if (regularPrice <= 0 || regularPrice < price)
         {
-            // Price is final, regular is original
-        }
-        else
-        {
-            // If no regular price, price is the standard price
             regularPrice = price;
         }
 
-        // Stock status
         bool isInStock = true;
         var stockLabel = card.SelectSingleNode(".//div[contains(@class,'product-quantities')]//label");
         if (stockLabel != null)
@@ -335,49 +262,41 @@ public sealed class SpacenetScraperService : IWebScraper
             isInStock = stockText.Contains("En stock", StringComparison.OrdinalIgnoreCase);
         }
 
-        // Manufacturer: from <div class="product-manufacturer"> <img alt="..."
         var manufacturerNode = card.SelectSingleNode(".//div[contains(@class,'product-manufacturer')]//img");
         var manufacturer = manufacturerNode?.GetAttributeValue("alt", string.Empty) ?? string.Empty;
 
-        // Description: from <div class="decriptions-short">
         var descriptionNode = card.SelectSingleNode(".//div[contains(@class,'decriptions-short')]");
         var description = CleanText(descriptionNode?.InnerText);
 
-        // For ERP stock we don't have an obvious field, leave empty
-        string erpStock = string.Empty;
-
-        // If reference is empty, fallback to productId or generate from title
         if (string.IsNullOrWhiteSpace(reference))
         {
             reference = productId;
         }
 
-        // If we still don't have a valid reference, skip this product
-        if (string.IsNullOrWhiteSpace(reference))
+        if (string.IsNullOrWhiteSpace(reference) || string.IsNullOrWhiteSpace(title))
             return null;
 
-        return new Product
+        return new ScrapedProductItem
         {
-            ProductId = CleanText(productId),
-            ProductReference = CleanText(reference),
+            RetailerCode = "SPACENET",
+            RetailerProductId = CleanText(productId),
+            RetailerSku = CleanText(reference),
             Title = CleanText(title),
             ProductUrl = ToAbsoluteUrl(productUrl),
             ImageUrl = ToAbsoluteUrl(imageUrl),
-            Price = regularPrice,
+            RegularPrice = regularPrice,
             FinalPrice = finalPrice,
             IsInStock = isInStock,
-            CategoryId = category.Url,
-            CategoryName = category.Title,
-            Provider = Providers.SpaceNet,   // enum already has SpaceNet
+            StockStatusText = isInStock ? "En stock" : "Hors stock",
             Manufacturer = CleanText(manufacturer),
             Description = CleanText(description),
-            ErpStock = CleanText(erpStock)
+            RawCategory = category.Title,
+            CategoryUrl = category.Url
         };
     }
 
     private static string? GetNextPageUrl(HtmlDocument document)
     {
-        // Pagination: <nav class="pagination"> -> <ul class="page-list"> -> <li><a class="next" ...>
         var nextLink = document.DocumentNode.SelectSingleNode(
             "//nav[contains(@class,'pagination')]//ul[contains(@class,'page-list')]//li//a[contains(@class,'next')][@href]");
         return nextLink?.GetAttributeValue("href", null);
@@ -391,7 +310,7 @@ public sealed class SpacenetScraperService : IWebScraper
         var normalized = HtmlEntity.DeEntitize(value)
             .Replace('\u00a0', ' ')
             .Replace(" ", string.Empty)
-            .Replace("DT", string.Empty)
+            .Replace("DT", string.Empty, StringComparison.OrdinalIgnoreCase)
             .Trim();
 
         var match = Regex.Match(normalized, @"\d+(?:[.,]\d+)?");
@@ -410,4 +329,5 @@ public sealed class SpacenetScraperService : IWebScraper
         string.IsNullOrWhiteSpace(url) ? string.Empty : new Uri(SpacenetBaseUri, url).AbsoluteUri;
 
     private static string CleanText(string? value) => HtmlEntity.DeEntitize(value ?? string.Empty).Trim();
+}
 }

@@ -83,11 +83,19 @@ builder.Services.AddHttpClient("TunisiaNet", client =>
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
 });
+builder.Services.AddHttpClient("Spacenet", client =>
+{
+    client.BaseAddress = new Uri("https://spacenet.tn/");
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+});
 builder.Services.AddScoped<MytekScraperService>();
 builder.Services.AddScoped<IMytekScraperService>(serviceProvider =>
     serviceProvider.GetRequiredService<MytekScraperService>());
 builder.Services.AddScoped<IWebScraper, MytekScraperService>();
 builder.Services.AddScoped<IWebScraper, TunisiaNetScraper>();
+builder.Services.AddScoped<IWebScraper, SpacenetScraperService>();
 
 // Register hosted service for web scraping
 builder.Services.AddHostedService<WebScraperHostedService>();

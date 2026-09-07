@@ -76,31 +76,78 @@ namespace Hi_Trade.DAL.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Hi_Trade.Models.Category", b =>
+            modelBuilder.Entity("Hi_Trade.Models.Brand", b =>
                 {
-                    b.Property<string>("Url")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at");
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("ParentCategory")
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Brands");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("Title")
+                    b.Property<int?>("ParentCategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("updated_at");
+                        .HasColumnType("datetime2");
 
-                    b.HasKey("Url");
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentCategoryId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.ToTable("Categories");
                 });
@@ -191,6 +238,50 @@ namespace Hi_Trade.DAL.Migrations
                     b.ToTable("Plans");
                 });
 
+            modelBuilder.Entity("Hi_Trade.Models.PriceHistory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("FinalPrice")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18, 3)");
+
+                    b.Property<bool>("IsInStock")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductListingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("RegularPrice")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18, 3)");
+
+                    b.Property<int>("RetailerId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordedAt");
+
+                    b.HasIndex("RetailerId");
+
+                    b.HasIndex("ProductId", "RecordedAt");
+
+                    b.HasIndex("ProductListingId", "RecordedAt");
+
+                    b.ToTable("PriceHistories");
+                });
+
             modelBuilder.Entity("Hi_Trade.Models.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -199,63 +290,154 @@ namespace Hi_Trade.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CategoryId")
+                    b.Property<int?>("BrandId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CheapestRetailerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Ean")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("HistoricalHighPrice")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18, 3)");
+
+                    b.Property<decimal>("HistoricalLowPrice")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18, 3)");
+
+                    b.Property<DateTime>("LastPriceCheckAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("MaxPrice")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18, 3)");
+
+                    b.Property<decimal>("MinPrice")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18, 3)");
+
+                    b.Property<string>("NormalizedSku")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("OffersCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PrimaryImageUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Specifications")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("CategoryName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.HasKey("Id");
 
-                    b.Property<string>("ErpStock")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.HasIndex("BrandId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("CheapestRetailerId");
+
+                    b.HasIndex("MinPrice");
+
+                    b.HasIndex("NormalizedSku");
+
+                    b.HasIndex("Title");
+
+                    b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.ProductListing", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("DiscountPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5, 2)");
 
                     b.Property<decimal>("FinalPrice")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18, 3)");
+
+                    b.Property<DateTime>("FirstScrapedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsInStock")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Manufacturer")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("LastPriceChangedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 3)
-                        .HasColumnType("decimal(18,3)");
+                    b.Property<DateTime>("LastScrapedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("ProductId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ProductReference")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("int");
 
                     b.Property<string>("ProductUrl")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<int>("Provider")
+                    b.Property<string>("RawCategory")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("RawManufacturer")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<decimal>("RegularPrice")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18, 3)");
+
+                    b.Property<int>("RetailerId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("ScrapedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("scraped_at");
+                    b.Property<string>("RetailerProductId")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("RetailerSku")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("StockStatusText")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -264,11 +446,204 @@ namespace Hi_Trade.DAL.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("IsInStock", "FinalPrice");
+
+                    b.HasIndex("RetailerId", "RetailerProductId");
+
+                    b.HasIndex("RetailerId", "RetailerSku")
+                        .IsUnique();
+
+                    b.ToTable("ProductListings");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.Retailer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BaseUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Retailers");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            BaseUrl = "https://www.mytek.tn/",
+                            Code = "MYTEK",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Currency = "TND",
+                            IsActive = true,
+                            LogoUrl = "https://www.mytek.tn/media/logo/stores/1/mytek-logo.svg",
+                            Name = "MyTek",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 2,
+                            BaseUrl = "https://www.tunisianet.com.tn/",
+                            Code = "TUNISIANET",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Currency = "TND",
+                            IsActive = true,
+                            LogoUrl = "https://www.tunisianet.com.tn/img/tunisianet-logo-1579277024.jpg",
+                            Name = "TunisiaNet",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 3,
+                            BaseUrl = "https://spacenet.tn/",
+                            Code = "SPACENET",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Currency = "TND",
+                            IsActive = true,
+                            LogoUrl = "https://spacenet.tn/img/spacenet-tunisie-logo-1563276632.jpg",
+                            Name = "SpaceNet",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.RetailerCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastScrapedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ParentCategoryName")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<int>("RetailerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("ScrapedAt");
+                    b.HasIndex("RetailerId", "Url")
+                        .IsUnique();
 
-                    b.ToTable("Products");
+                    b.ToTable("RetailerCategories");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.ScrapeSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ItemsScraped")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ItemsUpdated")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NewItemsCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PriceChangesCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RetailerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RetailerId", "StartedAt");
+
+                    b.ToTable("ScrapeSessions");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.Category", b =>
+                {
+                    b.HasOne("Hi_Trade.Models.Category", "ParentCategory")
+                        .WithMany("SubCategories")
+                        .HasForeignKey("ParentCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentCategory");
                 });
 
             modelBuilder.Entity("Hi_Trade.Models.Plan", b =>
@@ -282,25 +657,143 @@ namespace Hi_Trade.DAL.Migrations
                     b.Navigation("InternetProvider");
                 });
 
-            modelBuilder.Entity("Hi_Trade.Models.Product", b =>
+            modelBuilder.Entity("Hi_Trade.Models.PriceHistory", b =>
                 {
-                    b.HasOne("Hi_Trade.Models.Category", "Category")
-                        .WithMany("Products")
-                        .HasForeignKey("CategoryId")
+                    b.HasOne("Hi_Trade.Models.Product", "Product")
+                        .WithMany("PriceHistories")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Hi_Trade.Models.ProductListing", "ProductListing")
+                        .WithMany("PriceHistories")
+                        .HasForeignKey("ProductListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Hi_Trade.Models.Retailer", "Retailer")
+                        .WithMany("PriceHistories")
+                        .HasForeignKey("RetailerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductListing");
+
+                    b.Navigation("Retailer");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.Product", b =>
+                {
+                    b.HasOne("Hi_Trade.Models.Brand", "Brand")
+                        .WithMany("Products")
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Hi_Trade.Models.Category", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Hi_Trade.Models.Retailer", "CheapestRetailer")
+                        .WithMany()
+                        .HasForeignKey("CheapestRetailerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Brand");
+
                     b.Navigation("Category");
+
+                    b.Navigation("CheapestRetailer");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.ProductListing", b =>
+                {
+                    b.HasOne("Hi_Trade.Models.Product", "Product")
+                        .WithMany("Listings")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Hi_Trade.Models.Retailer", "Retailer")
+                        .WithMany("Listings")
+                        .HasForeignKey("RetailerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Retailer");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.RetailerCategory", b =>
+                {
+                    b.HasOne("Hi_Trade.Models.Category", "Category")
+                        .WithMany("RetailerCategories")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Hi_Trade.Models.Retailer", "Retailer")
+                        .WithMany("RetailerCategories")
+                        .HasForeignKey("RetailerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Retailer");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.ScrapeSession", b =>
+                {
+                    b.HasOne("Hi_Trade.Models.Retailer", "Retailer")
+                        .WithMany("ScrapeSessions")
+                        .HasForeignKey("RetailerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Retailer");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.Brand", b =>
+                {
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("Hi_Trade.Models.Category", b =>
                 {
                     b.Navigation("Products");
+
+                    b.Navigation("RetailerCategories");
+
+                    b.Navigation("SubCategories");
                 });
 
             modelBuilder.Entity("Hi_Trade.Models.InternetProvider", b =>
                 {
                     b.Navigation("Plans");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.Product", b =>
+                {
+                    b.Navigation("Listings");
+
+                    b.Navigation("PriceHistories");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.ProductListing", b =>
+                {
+                    b.Navigation("PriceHistories");
+                });
+
+            modelBuilder.Entity("Hi_Trade.Models.Retailer", b =>
+                {
+                    b.Navigation("Listings");
+
+                    b.Navigation("PriceHistories");
+
+                    b.Navigation("RetailerCategories");
+
+                    b.Navigation("ScrapeSessions");
                 });
 #pragma warning restore 612, 618
         }

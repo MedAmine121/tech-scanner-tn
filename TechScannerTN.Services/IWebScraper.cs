@@ -1,4 +1,5 @@
-using Hi_Trade.Models;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Hi_Trade.Services;
 
@@ -6,5 +7,6 @@ public interface IWebScraper
 {
     string ProviderName { get; }
 
-    Task<List<Product>> ScrapeAsync();
+    Task<int> ScrapeAsync(CancellationToken cancellationToken = default);
 }
+
