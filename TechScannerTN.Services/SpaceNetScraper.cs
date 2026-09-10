@@ -330,4 +330,3 @@ public sealed class SpacenetScraperService : IWebScraper
 
     private static string CleanText(string? value) => HtmlEntity.DeEntitize(value ?? string.Empty).Trim();
 }
-}

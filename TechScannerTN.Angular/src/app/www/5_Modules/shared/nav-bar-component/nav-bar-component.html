@@ -18,8 +18,8 @@
       <a [routerLink]="['/']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item">
         <span>Overview</span>
       </a>
-      <a href="#hardware-deals" class="nav-item">
-        <span>Hardware Scanners</span>
+      <a [routerLink]="['/products']" routerLinkActive="active" class="nav-item">
+        <span>Product Listings</span>
         <span class="badge-mini">Live</span>
       </a>
       <a href="#isp-plans" class="nav-item">
@@ -98,7 +98,7 @@
     <div class="mobile-menu mobile-only">
       <nav class="mobile-links">
         <a [routerLink]="['/']" (click)="toggleMenu()" class="mobile-item">Overview</a>
-        <a href="#hardware-deals" (click)="toggleMenu()" class="mobile-item">Hardware Scanners</a>
+        <a [routerLink]="['/products']" (click)="toggleMenu()" class="mobile-item">Product Listings</a>
         <a href="#isp-plans" (click)="toggleMenu()" class="mobile-item">ISP Plans</a>
         <a href="#features" (click)="toggleMenu()" class="mobile-item">Features</a>
       </nav>
