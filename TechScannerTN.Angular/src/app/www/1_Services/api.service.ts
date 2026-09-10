@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { StorageService } from './storage.service';
@@ -30,6 +30,20 @@ export class ApiService {
   Get$<T>(endpoint: string, isAnonymous: boolean = false): Observable<BaseResult<T>> {
     const headers = isAnonymous ? new HttpHeaders({ 'Content-Type': 'application/json' }) : this.getAuthHeaders();
     return this.http.get<BaseResult<T>>(`${this.apiUrl}/${endpoint}`, { headers });
+  }
+
+  GetRaw$<T>(endpoint: string, params?: Record<string, any>): Observable<T> {
+    const headers = this.getAuthHeaders();
+    let httpParams = new HttpParams();
+    if (params) {
+      Object.keys(params).forEach(key => {
+        const val = params[key];
+        if (val !== undefined && val !== null && val !== '') {
+          httpParams = httpParams.set(key, String(val));
+        }
+      });
+    }
+    return this.http.get<T>(`${this.apiUrl}/${endpoint}`, { headers, params: httpParams });
   }
 
   Post$<T>(endpoint: string, body: any, isAnonymous: boolean = false): Observable<BaseResult<T>> {

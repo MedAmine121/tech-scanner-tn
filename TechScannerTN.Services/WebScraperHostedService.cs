@@ -52,23 +52,7 @@ public class WebScraperHostedService : BackgroundService
 
             foreach (var scraper in scrapers)
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                _logger.LogInformation("Beginning scrape for {ProviderName}", scraper.ProviderName);
-
-                try
-                {
-                    var count = await scraper.ScrapeAsync(cancellationToken);
-                    _logger.LogInformation("Completed scrape for {ProviderName}: {Count} products ingested/updated.", scraper.ProviderName, count);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error scraping {ProviderName}", scraper.ProviderName);
-                }
-
+                _ = ScrapeAsync(scraper, cancellationToken);
                 // Friendly delay between retailer scrapes
                 await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
             }
@@ -92,6 +76,26 @@ public class WebScraperHostedService : BackgroundService
     {
         _timer?.Dispose();
         base.Dispose();
+    }
+    public async Task ScrapeAsync(IWebScraper? scraper, CancellationToken ct)
+    {
+        if (ct.IsCancellationRequested)
+        {
+            return;
+        }
+
+        _logger.LogInformation("Beginning scrape for {ProviderName}", scraper.ProviderName);
+
+
+        try
+        {
+            var count = await scraper.ScrapeAsync(ct);
+            _logger.LogInformation("Completed scrape for {ProviderName}: {Count} products ingested/updated.", scraper.ProviderName, count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scraping {ProviderName}", scraper.ProviderName);
+        }
     }
 }
 

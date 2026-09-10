@@ -278,3 +278,6 @@ __pycache__/
 
 appsettings.Development.json
 environment.development.ts
+
+**/.angular
+**/dist

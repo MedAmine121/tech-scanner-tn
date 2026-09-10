@@ -1,0 +1,495 @@
+<app-nav-bar></app-nav-bar>
+
+<main class="products-page-container">
+  <!-- Page Header -->
+  <header class="products-header">
+    <div class="header-glow"></div>
+    <div class="content-wrapper">
+      <div class="header-badge">
+        <span class="live-dot"></span>
+        <span>REAL-TIME TECH PRICE SCANNER</span>
+      </div>
+      <h1 class="header-title">
+        Compare Tech Prices Across <br>
+        <span class="gradient-text">MyTek, TunisiaNet & SpaceNet</span>
+      </h1>
+      <p class="header-subtitle">
+        We scan thousands of tech products daily across Tunisia's leading retailers. Discover the absolute cheapest price, track historical price drops, and spot real discounts.
+      </p>
+
+      <!-- Quick Highlights Bar -->
+      @if (bll.marketOverview(); as overview) {
+        <div class="market-quick-stats">
+          <div class="quick-stat-item">
+            <span class="stat-number">{{ overview.totalCanonicalProducts | number }}</span>
+            <span class="stat-label">Products Monitored</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="quick-stat-item">
+            <span class="stat-number">{{ overview.totalListingsTracked | number }}</span>
+            <span class="stat-label">Store Offers Compared</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="quick-stat-item">
+            <span class="stat-number highlight-fire">{{ overview.productsAtAllTimeLow | number }}</span>
+            <span class="stat-label">🔥 All-Time Low Deals</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="quick-stat-item">
+            <span class="stat-number">{{ overview.priceChangesRecordedLast24h | number }}</span>
+            <span class="stat-label">Price Updates (24h)</span>
+          </div>
+        </div>
+      }
+    </div>
+  </header>
+
+  <!-- Filter & Search Toolbar -->
+  <section class="toolbar-section">
+    <div class="content-wrapper">
+      <div class="toolbar-card">
+        <!-- Search Row -->
+        <div class="search-row">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+            </svg>
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Search by product name, brand, or SKU reference (e.g. Lenovo IdeaPad, 82RK009CFE, RTX 4060)..."
+              [ngModel]="searchInput()"
+              (ngModelChange)="searchInput.set($event)"
+              (keyup.enter)="onSearchSubmit()"
+            />
+            @if (searchInput()) {
+              <button (click)="onSearchClear()" class="search-clear-btn" type="button" title="Clear search">✕</button>
+            }
+          </div>
+          <button (click)="onSearchSubmit()" class="btn-search" type="button">
+            <span>Search</span>
+          </button>
+        </div>
+
+        <!-- Filter Controls Row -->
+        <div class="filters-row">
+          <!-- Retailer Quick Pills -->
+          <div class="filter-group">
+            <span class="group-label">Stores:</span>
+            <div class="pills-wrapper">
+              <button
+                type="button"
+                class="pill-btn"
+                [class.active]="bll.selectedRetailerId() === null"
+                (click)="onRetailerFilter(null)">
+                All Stores
+              </button>
+              <button
+                type="button"
+                class="pill-btn pill-mytek"
+                [class.active]="bll.selectedRetailerId() === 1"
+                (click)="onRetailerFilter(1)">
+                MyTek
+              </button>
+              <button
+                type="button"
+                class="pill-btn pill-tunisianet"
+                [class.active]="bll.selectedRetailerId() === 2"
+                (click)="onRetailerFilter(2)">
+                TunisiaNet
+              </button>
+              <button
+                type="button"
+                class="pill-btn pill-spacenet"
+                [class.active]="bll.selectedRetailerId() === 3"
+                (click)="onRetailerFilter(3)">
+                SpaceNet
+              </button>
+            </div>
+          </div>
+
+          <!-- Feature Toggles -->
+          <div class="filter-group">
+            <span class="group-label">Deals:</span>
+            <div class="pills-wrapper">
+              <button
+                type="button"
+                class="pill-btn pill-toggle"
+                [class.active]="bll.onlyHistoricalLows()"
+                (click)="bll.toggleHistoricalLows()">
+                🔥 All-Time Lows
+              </button>
+              <button
+                type="button"
+                class="pill-btn pill-toggle"
+                [class.active]="bll.onlyInStock()"
+                (click)="bll.toggleInStock()">
+                📦 In Stock Only
+              </button>
+            </div>
+          </div>
+
+          <!-- Sort Select -->
+          <div class="filter-group sort-group">
+            <span class="group-label">Sort by:</span>
+            <div class="select-wrapper">
+              <select class="sort-select" [value]="bll.sortBy()" (change)="onSortChange($event)">
+                <option value="cheapest">🏷️ Lowest Price First</option>
+                <option value="savings">💰 Biggest Store Savings</option>
+                <option value="expensive">📈 Highest Price First</option>
+                <option value="newest">⚡ Newest Added</option>
+                <option value="name">🔤 Name (A - Z)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Filter Indicator & Reset -->
+        @if (bll.searchTerm() || bll.selectedRetailerId() !== null || bll.onlyInStock() || bll.onlyHistoricalLows()) {
+          <div class="active-filters-bar">
+            <span class="active-text">Active Filters:</span>
+            @if (bll.searchTerm()) {
+              <span class="active-tag">Query: "{{ bll.searchTerm() }}"</span>
+            }
+            @if (bll.selectedRetailerId()) {
+              <span class="active-tag">Store: {{ bll.selectedRetailerId() === 1 ? 'MyTek' : bll.selectedRetailerId() === 2 ? 'TunisiaNet' : 'SpaceNet' }}</span>
+            }
+            @if (bll.onlyHistoricalLows()) {
+              <span class="active-tag">🔥 All-Time Lows</span>
+            }
+            @if (bll.onlyInStock()) {
+              <span class="active-tag">📦 In Stock</span>
+            }
+            <button (click)="bll.resetFilters(); searchInput.set('')" class="btn-reset-filters" type="button">
+              Reset Filters
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Products Catalog Section -->
+  <section class="catalog-section">
+    <div class="content-wrapper">
+      <!-- Status Header -->
+      <div class="catalog-status-header">
+        <h2 class="status-title">
+          @if (bll.loading()) {
+            <span>Updating live comparison...</span>
+          } @else {
+            <span>Found <strong>{{ bll.totalCount() | number }}</strong> products</span>
+          }
+        </h2>
+        <span class="page-indicator">Page {{ bll.page() }} of {{ bll.totalPages() || 1 }}</span>
+      </div>
+
+      <!-- Loading Skeleton -->
+      @if (bll.loading()) {
+        <div class="products-grid">
+          @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+            <div class="product-card skeleton-card">
+              <div class="skeleton-img"></div>
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line full"></div>
+              <div class="skeleton-line medium"></div>
+              <div class="skeleton-box"></div>
+            </div>
+          }
+        </div>
+      } @else if (bll.products().length === 0) {
+        <!-- Empty State -->
+        <div class="empty-state-box">
+          <div class="empty-icon">🔍</div>
+          <h3 class="empty-title">No products found</h3>
+          <p class="empty-desc">
+            We couldn't find any products matching your current search or filters. Try relaxing your filters or searching with different keywords.
+          </p>
+          <button (click)="bll.resetFilters(); searchInput.set('')" class="btn-primary-action" type="button">
+            Reset All Filters
+          </button>
+        </div>
+      } @else {
+        <!-- Products Grid -->
+        <div class="products-grid">
+          @for (product of bll.products(); track product.id) {
+            <div class="product-card" [class.highlight-drop]="product.isAtHistoricalLow">
+              <!-- Card Badges -->
+              <div class="card-badges-row">
+                @if (product.brandName) {
+                  <span class="badge-brand">{{ product.brandName }}</span>
+                }
+                @if (product.isAtHistoricalLow) {
+                  <span class="badge-history-low" title="Price is at all-time lowest recorded">🔥 All-Time Low</span>
+                }
+                @if (product.maxSavingsAmount > 0) {
+                  <span class="badge-savings">Save up to {{ product.maxSavingsAmount | number:'1.0-0' }} DT</span>
+                }
+              </div>
+
+              <!-- Product Image -->
+              <div class="product-image-box">
+                @if (product.primaryImageUrl) {
+                  <img [src]="product.primaryImageUrl" [alt]="product.title" class="product-img" loading="lazy" />
+                } @else {
+                  <div class="placeholder-img">💻</div>
+                }
+              </div>
+
+              <!-- Product Header Info -->
+              <div class="product-info">
+                @if (product.normalizedSku) {
+                  <span class="sku-ref">Ref: {{ product.normalizedSku }}</span>
+                }
+                <h3 class="product-title" [title]="product.title">
+                  {{ product.title }}
+                </h3>
+              </div>
+
+              <!-- Price Box -->
+              <div class="price-highlight-box">
+                <div class="price-row-top">
+                  <span class="price-label">Cheapest Price:</span>
+                  @if (product.cheapestRetailerName) {
+                    <span class="winner-store-tag" [ngClass]="getStoreBadgeClass(product.cheapestRetailerName)">
+                      at {{ product.cheapestRetailerName }}
+                    </span>
+                  }
+                </div>
+                <div class="price-row-main">
+                  <span class="main-price">
+                    {{ product.cheapestPrice | number:'1.3-3' }} <span class="currency">DT</span>
+                  </span>
+                  @if (product.highestPrice > product.cheapestPrice) {
+                    <span class="highest-price" title="Highest price found">
+                      {{ product.highestPrice | number:'1.3-3' }} DT
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Side-by-side Offers Breakdown -->
+              <div class="store-offers-section">
+                <div class="offers-header">
+                  <span>Available at {{ product.offers.length }} store{{ product.offers.length > 1 ? 's' : '' }}:</span>
+                </div>
+                <div class="offers-list">
+                  @for (offer of product.offers; track offer.listingId) {
+                    <div class="offer-row" [class.offer-cheapest]="offer.isCheapest">
+                      <div class="offer-store-col">
+                        <span class="store-dot" [ngClass]="getStoreBadgeClass(offer.retailerCode)"></span>
+                        <span class="store-title">{{ offer.retailerName }}</span>
+                      </div>
+
+                      <div class="offer-price-col">
+                        <span class="offer-final-price">{{ offer.finalPrice | number:'1.3-3' }} DT</span>
+                        @if (offer.isCheapest) {
+                          <span class="cheapest-micro-badge">Lowest!</span>
+                        } @else if (offer.differenceVsCheapest > 0) {
+                          <span class="diff-tag">+{{ offer.differenceVsCheapest | number:'1.0-0' }} DT</span>
+                        }
+                      </div>
+
+                      <div class="offer-action-col">
+                        <a [href]="offer.productUrl" target="_blank" rel="noopener noreferrer" class="btn-buy-store" [title]="'Open ' + offer.retailerName + ' listing'">
+                          <span>Buy</span>
+                          <svg class="external-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
+                        </a>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Card Action Button -->
+              <div class="card-footer-action">
+                <button (click)="bll.selectProduct(product)" class="btn-open-details" type="button">
+                  <span>Price History & Comparison</span>
+                  <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Pagination -->
+        @if (bll.totalPages() > 1) {
+          <div class="pagination-wrapper">
+            <button
+              [disabled]="bll.page() <= 1"
+              (click)="onPageChange(bll.page() - 1)"
+              class="btn-page-nav"
+              type="button">
+              ← Previous
+            </button>
+
+            <div class="page-numbers">
+              @for (p of [bll.page() - 1, bll.page(), bll.page() + 1]; track p) {
+                @if (p >= 1 && p <= bll.totalPages()) {
+                  <button
+                    type="button"
+                    class="page-num-btn"
+                    [class.active]="p === bll.page()"
+                    (click)="onPageChange(p)">
+                    {{ p }}
+                  </button>
+                }
+              }
+            </div>
+
+            <button
+              [disabled]="bll.page() >= bll.totalPages()"
+              (click)="onPageChange(bll.page() + 1)"
+              class="btn-page-nav"
+              type="button">
+              Next →
+            </button>
+          </div>
+        }
+      }
+    </div>
+  </section>
+
+  <!-- Product Details & Price History Modal -->
+  @if (bll.selectedProduct(); as sel) {
+    <div class="modal-backdrop" (click)="bll.closeSelectedProduct()">
+      <div class="modal-container" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <div class="modal-title-group">
+            @if (sel.brandName) {
+              <span class="modal-brand-tag">{{ sel.brandName }}</span>
+            }
+            <h2 class="modal-title">{{ sel.title }}</h2>
+            @if (sel.normalizedSku) {
+              <span class="modal-sku">SKU / Ref: {{ sel.normalizedSku }}</span>
+            }
+          </div>
+          <button (click)="bll.closeSelectedProduct()" class="modal-close-btn" type="button">✕</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+          <!-- Price Comparison Summary Card -->
+          <div class="modal-summary-grid">
+            <div class="summary-box">
+              <span class="box-lbl">Cheapest Offer</span>
+              <span class="box-val text-green">{{ sel.cheapestPrice | number:'1.3-3' }} DT</span>
+              <span class="box-sub">at {{ sel.cheapestRetailerName }}</span>
+            </div>
+            <div class="summary-box">
+              <span class="box-lbl">Highest Offer</span>
+              <span class="box-val">{{ sel.highestPrice | number:'1.3-3' }} DT</span>
+              <span class="box-sub">Across all stores</span>
+            </div>
+            <div class="summary-box">
+              <span class="box-lbl">Potential Savings</span>
+              <span class="box-val text-cyan">{{ sel.maxSavingsAmount | number:'1.3-3' }} DT</span>
+              <span class="box-sub">{{ sel.maxSavingsPercentage }}% cheaper</span>
+            </div>
+            <div class="summary-box">
+              <span class="box-lbl">All-Time Lowest</span>
+              <span class="box-val">{{ sel.historicalLowPrice | number:'1.3-3' }} DT</span>
+              <span class="box-sub">Ever recorded</span>
+            </div>
+          </div>
+
+          <!-- Side-by-side Offers Table -->
+          <div class="table-container">
+            <h3 class="table-heading">Live Store Price Comparison</h3>
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Retailer</th>
+                  <th>Price</th>
+                  <th>Original Price</th>
+                  <th>Difference vs Lowest</th>
+                  <th>Availability</th>
+                  <th>Direct Store Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (offer of sel.offers; track offer.listingId) {
+                  <tr [class.highlight-row]="offer.isCheapest">
+                    <td>
+                      <div class="retailer-cell">
+                        <span class="retailer-badge" [ngClass]="getStoreBadgeClass(offer.retailerCode)">{{ offer.retailerName }}</span>
+                        @if (offer.isCheapest) {
+                          <span class="best-deal-chip">Cheapest</span>
+                        }
+                      </div>
+                    </td>
+                    <td>
+                      <span class="table-price">{{ offer.finalPrice | number:'1.3-3' }} DT</span>
+                    </td>
+                    <td>
+                      <span class="table-reg-price">
+                        {{ (offer.regularPrice > offer.finalPrice ? (offer.regularPrice | number:'1.3-3') : '-') }} DT
+                      </span>
+                    </td>
+                    <td>
+                      @if (offer.isCheapest) {
+                        <span class="table-diff lowest">Lowest Price</span>
+                      } @else {
+                        <span class="table-diff diff-plus">+{{ offer.differenceVsCheapest | number:'1.3-3' }} DT (+{{ offer.differencePercentage }}%)</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="stock-chip" [class.in-stock]="offer.isInStock" [class.out-stock]="!offer.isInStock">
+                        {{ offer.isInStock ? 'In Stock' : 'Out of Stock' }}
+                      </span>
+                    </td>
+                    <td>
+                      <a [href]="offer.productUrl" target="_blank" rel="noopener noreferrer" class="btn-store-external">
+                        <span>Buy on {{ offer.retailerName }}</span>
+                        <svg class="ext-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
+                      </a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Price History Section -->
+          <div class="history-section">
+            <h3 class="table-heading">Price Drop History & Log</h3>
+            @if (bll.loadingHistory()) {
+              <p class="history-loading">Loading price history...</p>
+            } @else if (bll.selectedPriceHistory().length === 0) {
+              <p class="history-empty">No price changes recorded yet. We just started tracking this item!</p>
+            } @else {
+              <div class="history-timeline">
+                @for (h of bll.selectedPriceHistory(); track h.id) {
+                  <div class="timeline-entry">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                      <div class="timeline-header">
+                        <span class="timeline-store" [ngClass]="getStoreBadgeClass(h.retailerCode)">{{ h.retailerName }}</span>
+                        <span class="timeline-date">{{ formatDate(h.recordedAt) }}</span>
+                      </div>
+                      <div class="timeline-body">
+                        Price recorded: <strong>{{ h.finalPrice | number:'1.3-3' }} DT</strong>
+                        <span class="timeline-stock" [class.in]="h.isInStock" [class.out]="!h.isInStock">
+                          ({{ h.isInStock ? 'In Stock' : 'Out of Stock' }})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <button (click)="bll.closeSelectedProduct()" class="btn-modal-close" type="button">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+</main>
+
+<app-footer></app-footer>
+

@@ -11,6 +11,10 @@ export const routes: Routes = [
     component: HomeComponent
   },
   {
+    path: 'products',
+    loadComponent: () => import('./www/5_Modules/products/products-list/products-list.component').then(m => m.ProductsListComponent)
+  },
+  {
     path: 'login',
     component: LoginComponent,
     canActivate: [guestGuard]
