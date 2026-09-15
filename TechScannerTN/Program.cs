@@ -21,10 +21,10 @@ builder.Services.AddControllers();
 
 // Add DbContext with SQL Server
 builder.Services.AddDbContext<TechScannerContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddDbContextFactory<TechScannerContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")),
-    ServiceLifetime.Scoped);
+    optionsLifetime: ServiceLifetime.Singleton);
+builder.Services.AddDbContextFactory<TechScannerContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // CORS Policy
 builder.Services.AddCors(options =>
