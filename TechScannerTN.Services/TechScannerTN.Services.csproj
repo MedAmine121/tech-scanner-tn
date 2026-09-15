@@ -23,5 +23,9 @@
     <ProjectReference Include="..\TechScannerTN.Models\TechScannerTN.Models.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="TechScannerTN.Tests" />
+  </ItemGroup>
+
 </Project>
 

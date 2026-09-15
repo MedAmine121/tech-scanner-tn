@@ -95,81 +95,111 @@ public sealed class SpacenetScraperService : IWebScraper
         }
     }
 
-    private static IReadOnlyList<CategoryDto> ParseCategories(string html)
+    internal static IReadOnlyList<CategoryDto> ParseCategories(string html)
     {
         var document = new HtmlDocument();
         document.LoadHtml(html);
 
         var categories = new List<CategoryDto>();
-        var menuNode = document.DocumentNode.SelectSingleNode("//div[@id='sp-vermegamenu']");
+        var menuNode = document.DocumentNode.SelectSingleNode("//div[@id='sp-vermegamenu' or contains(@class,'sp-vermegamenu')]");
         if (menuNode == null)
             return categories;
 
-        var topLevelItems = menuNode.SelectNodes(".//li[contains(@class,'item-1') and contains(@class,'vertical-cat') and contains(@class,'parent')]")
+        var topLevelItems = menuNode.SelectNodes(".//li[contains(@class,'item-1')]")
             ?? Enumerable.Empty<HtmlNode>();
 
         foreach (var topItem in topLevelItems)
         {
-            var parentLink = topItem.SelectSingleNode(".//a[contains(@class,'item-1')]");
+            var parentLink = topItem.SelectSingleNode("./a") ?? topItem.SelectSingleNode(".//a");
             if (parentLink == null)
                 continue;
 
-            var parentCategory = CleanText(parentLink.InnerText);
+            var parentCategory = ExtractTitle(parentLink);
             var parentUrl = parentLink.GetAttributeValue("href", string.Empty);
 
-            if (!string.IsNullOrWhiteSpace(parentUrl))
-            {
-                categories.Add(new CategoryDto(
-                    string.Empty,
-                    parentCategory,
-                    ToAbsoluteUrl(parentUrl)
-                ));
-            }
+            AddCategory(string.Empty, parentCategory, parentUrl, categories);
 
-            var subItems = topItem.SelectNodes(".//div[contains(@class,'dropdown-menu')]//li[contains(@class,'cat-child')]")
+            var subItems = topItem.SelectNodes(".//ul[contains(@class,'level-2')]/li[contains(@class,'item-2')]")
+                ?? topItem.SelectNodes(".//div[contains(@class,'dropdown-menu')]//li[contains(@class,'cat-child')]")
                 ?? Enumerable.Empty<HtmlNode>();
 
             foreach (var subItem in subItems)
             {
-                var subLink = subItem.SelectSingleNode(".//a");
+                var subLink = subItem.SelectSingleNode("./a") ?? subItem.SelectSingleNode(".//a");
                 if (subLink == null)
                     continue;
 
-                var subTitle = CleanText(subLink.InnerText);
+                var subTitle = ExtractTitle(subLink);
                 var subUrl = subLink.GetAttributeValue("href", string.Empty);
 
-                if (!string.IsNullOrWhiteSpace(subUrl))
-                {
-                    categories.Add(new CategoryDto(
-                        parentCategory,
-                        subTitle,
-                        ToAbsoluteUrl(subUrl)
-                    ));
-                }
+                AddCategory(parentCategory, subTitle, subUrl, categories);
 
-                var thirdLevelItems = subItem.SelectNodes(".//ul[contains(@class,'level-3')]//li[contains(@class,'item-3')]//a")
+                var thirdLevelItems = subItem.SelectNodes(".//ul[contains(@class,'level-3')]//li[contains(@class,'item-3')]//a[@href]")
                     ?? Enumerable.Empty<HtmlNode>();
 
                 foreach (var thirdLink in thirdLevelItems)
                 {
-                    var thirdTitle = CleanText(thirdLink.InnerText);
+                    var thirdTitle = ExtractTitle(thirdLink);
                     var thirdUrl = thirdLink.GetAttributeValue("href", string.Empty);
 
-                    if (!string.IsNullOrWhiteSpace(thirdUrl))
-                    {
-                        categories.Add(new CategoryDto(
-                            subTitle,
-                            thirdTitle,
-                            ToAbsoluteUrl(thirdUrl)
-                        ));
-                    }
+                    AddCategory(subTitle, thirdTitle, thirdUrl, categories);
                 }
             }
         }
 
         return categories
-            .DistinctBy(c => new { c.ParentCategory, c.Title, c.Url })
+            .DistinctBy(c => c.Url, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    private static bool AddCategory(
+        string parentCategory,
+        string title,
+        string? url,
+        List<CategoryDto> categories)
+    {
+        if (string.IsNullOrWhiteSpace(title) || !IsValidUrl(url))
+        {
+            return false;
+        }
+
+        categories.Add(new CategoryDto(
+            parentCategory,
+            title,
+            ToAbsoluteUrl(url)));
+        return true;
+    }
+
+    private static string ExtractTitle(HtmlNode linkNode)
+    {
+        var titleAttr = linkNode.GetAttributeValue("title", string.Empty);
+        if (!string.IsNullOrWhiteSpace(titleAttr))
+        {
+            return CleanText(titleAttr);
+        }
+
+        var titleSpan = linkNode.SelectSingleNode(".//span[contains(@class,'sp_megamenu_title')]");
+        if (titleSpan != null && !string.IsNullOrWhiteSpace(titleSpan.InnerText))
+        {
+            return CleanText(titleSpan.InnerText);
+        }
+
+        return CleanText(linkNode.InnerText);
+    }
+
+    private static bool IsValidUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return false;
+        }
+
+        if (url.StartsWith('#') || url.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private async Task ScrapeCategoryAsync(
@@ -328,5 +358,8 @@ public sealed class SpacenetScraperService : IWebScraper
     private static string ToAbsoluteUrl(string? url) =>
         string.IsNullOrWhiteSpace(url) ? string.Empty : new Uri(SpacenetBaseUri, url).AbsoluteUri;
 
-    private static string CleanText(string? value) => HtmlEntity.DeEntitize(value ?? string.Empty).Trim();
+    private static string CleanText(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : Regex.Replace(HtmlEntity.DeEntitize(value), @"\s+", " ").Trim();
 }

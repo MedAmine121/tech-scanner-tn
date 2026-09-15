@@ -12,7 +12,6 @@ public class WebScraperHostedService : BackgroundService
 {
     private readonly ILogger<WebScraperHostedService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private Timer? _timer;
     private readonly TimeSpan _scrapeInterval;
 
     public WebScraperHostedService(
@@ -31,33 +30,62 @@ public class WebScraperHostedService : BackgroundService
         // Run scraper on startup
         await PerformScrapeAsync(stoppingToken);
 
-        // Then schedule periodic runs
-        _timer = new Timer(
-            callback: async _ => await PerformScrapeAsync(stoppingToken),
-            state: null,
-            dueTime: _scrapeInterval,
-            period: _scrapeInterval);
-
-        await Task.CompletedTask;
+        // Then schedule periodic runs using PeriodicTimer
+        using var timer = new PeriodicTimer(_scrapeInterval);
+        try
+        {
+            while (!stoppingToken.IsCancellationRequested && await timer.WaitForNextTickAsync(stoppingToken))
+            {
+                await PerformScrapeAsync(stoppingToken);
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("WebScraperHostedService stopping due to cancellation.");
+        }
     }
 
     private async Task PerformScrapeAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting scheduled multi-site product scraping");
+        _logger.LogInformation("Starting scheduled multi-site product scraping in parallel");
 
         try
         {
-            using var scope = _serviceProvider.CreateScope();
-            var scrapers = scope.ServiceProvider.GetRequiredService<IEnumerable<IWebScraper>>();
-
-            foreach (var scraper in scrapers)
+            Type[] scraperTypes;
+            using (var initScope = _serviceProvider.CreateScope())
             {
-                _ = ScrapeAsync(scraper, cancellationToken);
-                // Friendly delay between retailer scrapes
-                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                scraperTypes = initScope.ServiceProvider
+                    .GetRequiredService<IEnumerable<IWebScraper>>()
+                    .Select(s => s.GetType())
+                    .Distinct()
+                    .ToArray();
             }
 
+            var tasks = new List<Task>();
+
+            foreach (var scraperType in scraperTypes)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                tasks.Add(RunScraperInScopeAsync(scraperType, cancellationToken));
+
+                // Brief stagger between launching parallel retailer scraper jobs
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+                }
+            }
+
+            await Task.WhenAll(tasks);
+
             _logger.LogInformation("All scheduled retailer scrapes completed successfully");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Product scraping cancelled.");
         }
         catch (Exception ex)
         {
@@ -65,32 +93,36 @@ public class WebScraperHostedService : BackgroundService
         }
     }
 
+    private async Task RunScraperInScopeAsync(Type scraperType, CancellationToken cancellationToken)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var scraper = (IWebScraper)ActivatorUtilities.CreateInstance(scope.ServiceProvider, scraperType);
+        await ScrapeAsync(scraper, cancellationToken);
+    }
+
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("WebScraperHostedService stopping");
-        _timer?.Dispose();
         await base.StopAsync(cancellationToken);
     }
 
-    public override void Dispose()
-    {
-        _timer?.Dispose();
-        base.Dispose();
-    }
     public async Task ScrapeAsync(IWebScraper? scraper, CancellationToken ct)
     {
-        if (ct.IsCancellationRequested)
+        if (scraper is null || ct.IsCancellationRequested)
         {
             return;
         }
 
         _logger.LogInformation("Beginning scrape for {ProviderName}", scraper.ProviderName);
 
-
         try
         {
             var count = await scraper.ScrapeAsync(ct);
             _logger.LogInformation("Completed scrape for {ProviderName}: {Count} products ingested/updated.", scraper.ProviderName, count);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            _logger.LogInformation("Scraping cancelled for {ProviderName}", scraper.ProviderName);
         }
         catch (Exception ex)
         {
@@ -98,4 +130,3 @@ public class WebScraperHostedService : BackgroundService
         }
     }
 }
-
