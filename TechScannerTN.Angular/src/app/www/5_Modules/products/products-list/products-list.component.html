@@ -1,73 +1,70 @@
 <app-nav-bar></app-nav-bar>
 
 <main class="products-page-container">
-  <!-- Page Header -->
+  <!-- Terminal Page Header -->
   <header class="products-header">
-    <div class="header-glow"></div>
     <div class="content-wrapper">
-      <div class="header-badge">
-        <span class="live-dot"></span>
-        <span>REAL-TIME TECH PRICE SCANNER</span>
-      </div>
-      <h1 class="header-title">
-        Compare Tech Prices Across <br>
-        <span class="gradient-text">MyTek, TunisiaNet & SpaceNet</span>
-      </h1>
-      <p class="header-subtitle">
-        We scan thousands of tech products daily across Tunisia's leading retailers. Discover the absolute cheapest price, track historical price drops, and spot real discounts.
-      </p>
-
-      <!-- Quick Highlights Bar -->
-      @if (bll.marketOverview(); as overview) {
-        <div class="market-quick-stats">
-          <div class="quick-stat-item">
-            <span class="stat-number">{{ overview.totalCanonicalProducts | number }}</span>
-            <span class="stat-label">Products Monitored</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="quick-stat-item">
-            <span class="stat-number">{{ overview.totalListingsTracked | number }}</span>
-            <span class="stat-label">Store Offers Compared</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="quick-stat-item">
-            <span class="stat-number highlight-fire">{{ overview.productsAtAllTimeLow | number }}</span>
-            <span class="stat-label">🔥 All-Time Low Deals</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="quick-stat-item">
-            <span class="stat-number">{{ overview.priceChangesRecordedLast24h | number }}</span>
-            <span class="stat-label">Price Updates (24h)</span>
-          </div>
+      <div class="header-terminal-box">
+        <div class="header-main-col">
+          <div class="cmd-prompt">&gt; LIVE_PRODUCT_SCANNER // CANONICAL_CATALOG</div>
+          <h1 class="header-title">
+            Compare Tech Prices Across <span>MyTek, TunisiaNet &amp; SpaceNet</span>
+          </h1>
+          <p class="header-subtitle">
+            Real-time SKU price order books across Tunisia's leading hardware retailers. Identify lowest offers, audit historical bottoms, and track genuine discounts.
+          </p>
         </div>
-      }
+
+        @if (bll.marketOverview(); as overview) {
+          <div class="market-quick-stats">
+            <div class="quick-stat-item">
+              <span class="stat-label">Products Monitored</span>
+              <span class="stat-number">{{ overview.totalCanonicalProducts | number }}</span>
+              <span class="stat-sub">● FEED ACTIVE</span>
+            </div>
+            <div class="quick-stat-item">
+              <span class="stat-label">Store Offers Compared</span>
+              <span class="stat-number">{{ overview.totalListingsTracked | number }}</span>
+              <span class="stat-sub">3 EXCHANGES</span>
+            </div>
+            <div class="quick-stat-item">
+              <span class="stat-label">All-Time Low Deals</span>
+              <span class="stat-number highlight-fire">{{ overview.productsAtAllTimeLow | number }}</span>
+              <span class="stat-sub">★ HISTORICAL FLOOR</span>
+            </div>
+            <div class="quick-stat-item">
+              <span class="stat-label">Price Updates (24h)</span>
+              <span class="stat-number">{{ overview.priceChangesRecordedLast24h | number }}</span>
+              <span class="stat-sub">LAST 24 HOURS</span>
+            </div>
+          </div>
+        }
+      </div>
     </div>
   </header>
 
-  <!-- Filter & Search Toolbar -->
+  <!-- Filter & Search Command Toolbar -->
   <section class="toolbar-section">
     <div class="content-wrapper">
       <div class="toolbar-card">
         <!-- Search Row -->
         <div class="search-row">
           <div class="search-input-wrapper">
-            <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-            </svg>
+            <span class="search-prefix">QUERY&gt;</span>
             <input
               type="text"
               class="search-input"
-              placeholder="Search by product name, brand, or SKU reference (e.g. Lenovo IdeaPad, 82RK009CFE, RTX 4060)..."
+              placeholder="Search product name, brand, or SKU reference (e.g. Lenovo IdeaPad, 82RK009CFE, RTX 4060)..."
               [ngModel]="searchInput()"
               (ngModelChange)="searchInput.set($event)"
               (keyup.enter)="onSearchSubmit()"
             />
             @if (searchInput()) {
-              <button (click)="onSearchClear()" class="search-clear-btn" type="button" title="Clear search">✕</button>
+              <button (click)="onSearchClear()" class="search-clear-btn" type="button" title="Clear search">[CLR]</button>
             }
           </div>
           <button (click)="onSearchSubmit()" class="btn-search" type="button">
-            <span>Search</span>
+            <span>EXEC_SCAN</span>
           </button>
         </div>
 
@@ -75,70 +72,76 @@
         <div class="filters-row">
           <!-- Retailer Quick Pills -->
           <div class="filter-group">
-            <span class="group-label">Stores:</span>
+            <span class="group-label">EXCHANGE:</span>
             <div class="pills-wrapper">
               <button
                 type="button"
                 class="pill-btn"
                 [class.active]="bll.selectedRetailerId() === null"
-                (click)="onRetailerFilter(null)">
-                All Stores
+                (click)="onRetailerFilter(null)"
+              >
+                [ALL_STORES]
               </button>
               <button
                 type="button"
                 class="pill-btn pill-mytek"
                 [class.active]="bll.selectedRetailerId() === 1"
-                (click)="onRetailerFilter(1)">
-                MyTek
+                (click)="onRetailerFilter(1)"
+              >
+                [MYTEK]
               </button>
               <button
                 type="button"
                 class="pill-btn pill-tunisianet"
                 [class.active]="bll.selectedRetailerId() === 2"
-                (click)="onRetailerFilter(2)">
-                TunisiaNet
+                (click)="onRetailerFilter(2)"
+              >
+                [TUNISIANET]
               </button>
               <button
                 type="button"
                 class="pill-btn pill-spacenet"
                 [class.active]="bll.selectedRetailerId() === 3"
-                (click)="onRetailerFilter(3)">
-                SpaceNet
+                (click)="onRetailerFilter(3)"
+              >
+                [SPACENET]
               </button>
             </div>
           </div>
 
           <!-- Feature Toggles -->
           <div class="filter-group">
-            <span class="group-label">Deals:</span>
+            <span class="group-label">SIGNALS:</span>
             <div class="pills-wrapper">
               <button
                 type="button"
                 class="pill-btn pill-toggle"
                 [class.active]="bll.onlyHistoricalLows()"
-                (click)="bll.toggleHistoricalLows()">
-                🔥 All-Time Lows
+                (click)="bll.toggleHistoricalLows()"
+              >
+                [★ ALL-TIME_LOWS]
               </button>
               <button
                 type="button"
-                class="pill-btn pill-toggle"
+                class="pill-btn pill-toggle-stock"
                 [class.active]="bll.onlyInStock()"
-                (click)="bll.toggleInStock()">
-                📦 In Stock Only
+                (click)="bll.toggleInStock()"
+              >
+                [● IN_STOCK_ONLY]
               </button>
             </div>
           </div>
 
           <!-- Sort Select -->
           <div class="filter-group sort-group">
-            <span class="group-label">Sort by:</span>
+            <span class="group-label">SORT:</span>
             <div class="select-wrapper">
               <select class="sort-select" [value]="bll.sortBy()" (change)="onSortChange($event)">
-                <option value="cheapest">🏷️ Lowest Price First</option>
-                <option value="savings">💰 Biggest Store Savings</option>
-                <option value="expensive">📈 Highest Price First</option>
-                <option value="newest">⚡ Newest Added</option>
-                <option value="name">🔤 Name (A - Z)</option>
+                <option value="cheapest">LOWEST PRICE FIRST</option>
+                <option value="savings">BIGGEST STORE SAVINGS</option>
+                <option value="expensive">HIGHEST PRICE FIRST</option>
+                <option value="newest">NEWEST ADDED</option>
+                <option value="name">NAME (A - Z)</option>
               </select>
             </div>
           </div>
@@ -147,21 +150,23 @@
         <!-- Active Filter Indicator & Reset -->
         @if (bll.searchTerm() || bll.selectedRetailerId() !== null || bll.onlyInStock() || bll.onlyHistoricalLows()) {
           <div class="active-filters-bar">
-            <span class="active-text">Active Filters:</span>
+            <span class="active-text">ACTIVE_FILTERS:</span>
             @if (bll.searchTerm()) {
-              <span class="active-tag">Query: "{{ bll.searchTerm() }}"</span>
+              <span class="active-tag">QUERY="{{ bll.searchTerm() }}"</span>
             }
             @if (bll.selectedRetailerId()) {
-              <span class="active-tag">Store: {{ bll.selectedRetailerId() === 1 ? 'MyTek' : bll.selectedRetailerId() === 2 ? 'TunisiaNet' : 'SpaceNet' }}</span>
+              <span class="active-tag">
+                STORE={{ bll.selectedRetailerId() === 1 ? 'MYTEK' : bll.selectedRetailerId() === 2 ? 'TUNISIANET' : 'SPACENET' }}
+              </span>
             }
             @if (bll.onlyHistoricalLows()) {
-              <span class="active-tag">🔥 All-Time Lows</span>
+              <span class="active-tag">FLAG=ALL_TIME_LOW</span>
             }
             @if (bll.onlyInStock()) {
-              <span class="active-tag">📦 In Stock</span>
+              <span class="active-tag">STATUS=IN_STOCK</span>
             }
             <button (click)="bll.resetFilters(); searchInput.set('')" class="btn-reset-filters" type="button">
-              Reset Filters
+              [RESET_ALL]
             </button>
           </div>
         }
@@ -176,12 +181,12 @@
       <div class="catalog-status-header">
         <h2 class="status-title">
           @if (bll.loading()) {
-            <span>Updating live comparison...</span>
+            <span>SYNCING LIVE TELEMETRY...</span>
           } @else {
-            <span>Found <strong>{{ bll.totalCount() | number }}</strong> products</span>
+            <span>CATALOG_RESULTS // FOUND <strong>{{ bll.totalCount() | number }}</strong> SKUS</span>
           }
         </h2>
-        <span class="page-indicator">Page {{ bll.page() }} of {{ bll.totalPages() || 1 }}</span>
+        <span class="page-indicator">PAGE {{ bll.page() }} OF {{ bll.totalPages() || 1 }}</span>
       </div>
 
       <!-- Loading Skeleton -->
@@ -200,13 +205,13 @@
       } @else if (bll.products().length === 0) {
         <!-- Empty State -->
         <div class="empty-state-box">
-          <div class="empty-icon">🔍</div>
-          <h3 class="empty-title">No products found</h3>
+          <div class="empty-icon">[404 // EMPTY_SET]</div>
+          <h3 class="empty-title">NO MATCHING PRODUCTS FOUND</h3>
           <p class="empty-desc">
-            We couldn't find any products matching your current search or filters. Try relaxing your filters or searching with different keywords.
+            Zero SKUs matched your active query or filter constraints. Reset parameters or broaden search terms.
           </p>
           <button (click)="bll.resetFilters(); searchInput.set('')" class="btn-primary-action" type="button">
-            Reset All Filters
+            RESET_ALL_FILTERS
           </button>
         </div>
       } @else {
@@ -214,16 +219,16 @@
         <div class="products-grid">
           @for (product of bll.products(); track product.id) {
             <div class="product-card" [class.highlight-drop]="product.isAtHistoricalLow">
-              <!-- Card Badges -->
+              <!-- Card Telemetry Header -->
               <div class="card-badges-row">
                 @if (product.brandName) {
                   <span class="badge-brand">{{ product.brandName }}</span>
                 }
                 @if (product.isAtHistoricalLow) {
-                  <span class="badge-history-low" title="Price is at all-time lowest recorded">🔥 All-Time Low</span>
+                  <span class="badge-history-low" title="Price is at all-time lowest recorded">ALL-TIME LOW</span>
                 }
                 @if (product.maxSavingsAmount > 0) {
-                  <span class="badge-savings">Save up to {{ product.maxSavingsAmount | number:'1.0-0' }} DT</span>
+                  <span class="badge-savings">SAVE {{ product.maxSavingsAmount | number:'1.0-0' }} DT</span>
                 }
               </div>
 
@@ -232,14 +237,14 @@
                 @if (product.primaryImageUrl) {
                   <img [src]="product.primaryImageUrl" [alt]="product.title" class="product-img" loading="lazy" />
                 } @else {
-                  <div class="placeholder-img">💻</div>
+                  <div class="placeholder-img">[NO_IMAGE_FEED]</div>
                 }
               </div>
 
               <!-- Product Header Info -->
               <div class="product-info">
                 @if (product.normalizedSku) {
-                  <span class="sku-ref">Ref: {{ product.normalizedSku }}</span>
+                  <span class="sku-ref">SKU: {{ product.normalizedSku }}</span>
                 }
                 <h3 class="product-title" [title]="product.title">
                   {{ product.title }}
@@ -249,10 +254,10 @@
               <!-- Price Box -->
               <div class="price-highlight-box">
                 <div class="price-row-top">
-                  <span class="price-label">Cheapest Price:</span>
+                  <span class="price-label">LOWEST_BID:</span>
                   @if (product.cheapestRetailerName) {
                     <span class="winner-store-tag" [ngClass]="getStoreBadgeClass(product.cheapestRetailerName)">
-                      at {{ product.cheapestRetailerName }}
+                      @{{ product.cheapestRetailerName | uppercase }}
                     </span>
                   }
                 </div>
@@ -268,10 +273,10 @@
                 </div>
               </div>
 
-              <!-- Side-by-side Offers Breakdown -->
+              <!-- Order-Book Style Offers Breakdown -->
               <div class="store-offers-section">
                 <div class="offers-header">
-                  <span>Available at {{ product.offers.length }} store{{ product.offers.length > 1 ? 's' : '' }}:</span>
+                  <span>EXCHANGE_QUOTES ({{ product.offers.length }}):</span>
                 </div>
                 <div class="offers-list">
                   @for (offer of product.offers; track offer.listingId) {
@@ -284,16 +289,21 @@
                       <div class="offer-price-col">
                         <span class="offer-final-price">{{ offer.finalPrice | number:'1.3-3' }} DT</span>
                         @if (offer.isCheapest) {
-                          <span class="cheapest-micro-badge">Lowest!</span>
+                          <span class="cheapest-micro-badge">LOW</span>
                         } @else if (offer.differenceVsCheapest > 0) {
-                          <span class="diff-tag">+{{ offer.differenceVsCheapest | number:'1.0-0' }} DT</span>
+                          <span class="diff-tag">+{{ offer.differenceVsCheapest | number:'1.0-0' }}</span>
                         }
                       </div>
 
                       <div class="offer-action-col">
-                        <a [href]="offer.productUrl" target="_blank" rel="noopener noreferrer" class="btn-buy-store" [title]="'Open ' + offer.retailerName + ' listing'">
-                          <span>Buy</span>
-                          <svg class="external-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
+                        <a
+                          [href]="offer.productUrl"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="btn-buy-store"
+                          [title]="'Open ' + offer.retailerName + ' listing'"
+                        >
+                          <span>BUY ↗</span>
                         </a>
                       </div>
                     </div>
@@ -304,8 +314,7 @@
               <!-- Card Action Button -->
               <div class="card-footer-action">
                 <button (click)="bll.selectProduct(product)" class="btn-open-details" type="button">
-                  <span>Price History & Comparison</span>
-                  <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                  <span>[ PRICE HISTORY &amp; ORDER BOOK ]</span>
                 </button>
               </div>
             </div>
@@ -319,8 +328,9 @@
               [disabled]="bll.page() <= 1"
               (click)="onPageChange(bll.page() - 1)"
               class="btn-page-nav"
-              type="button">
-              ← Previous
+              type="button"
+            >
+              [← PREV]
             </button>
 
             <div class="page-numbers">
@@ -330,7 +340,8 @@
                     type="button"
                     class="page-num-btn"
                     [class.active]="p === bll.page()"
-                    (click)="onPageChange(p)">
+                    (click)="onPageChange(p)"
+                  >
                     {{ p }}
                   </button>
                 }
@@ -341,8 +352,9 @@
               [disabled]="bll.page() >= bll.totalPages()"
               (click)="onPageChange(bll.page() + 1)"
               class="btn-page-nav"
-              type="button">
-              Next →
+              type="button"
+            >
+              [NEXT →]
             </button>
           </div>
         }
@@ -358,14 +370,14 @@
         <div class="modal-header">
           <div class="modal-title-group">
             @if (sel.brandName) {
-              <span class="modal-brand-tag">{{ sel.brandName }}</span>
+              <span class="modal-brand-tag">[{{ sel.brandName }}]</span>
             }
             <h2 class="modal-title">{{ sel.title }}</h2>
             @if (sel.normalizedSku) {
-              <span class="modal-sku">SKU / Ref: {{ sel.normalizedSku }}</span>
+              <span class="modal-sku">SKU_REF: {{ sel.normalizedSku }}</span>
             }
           </div>
-          <button (click)="bll.closeSelectedProduct()" class="modal-close-btn" type="button">✕</button>
+          <button (click)="bll.closeSelectedProduct()" class="modal-close-btn" type="button">[ESC / ✕]</button>
         </div>
 
         <!-- Modal Body -->
@@ -373,39 +385,39 @@
           <!-- Price Comparison Summary Card -->
           <div class="modal-summary-grid">
             <div class="summary-box">
-              <span class="box-lbl">Cheapest Offer</span>
+              <span class="box-lbl">CHEAPEST_BID</span>
               <span class="box-val text-green">{{ sel.cheapestPrice | number:'1.3-3' }} DT</span>
-              <span class="box-sub">at {{ sel.cheapestRetailerName }}</span>
+              <span class="box-sub">@{{ sel.cheapestRetailerName }}</span>
             </div>
             <div class="summary-box">
-              <span class="box-lbl">Highest Offer</span>
-              <span class="box-val">{{ sel.highestPrice | number:'1.3-3' }} DT</span>
+              <span class="box-lbl">HIGHEST_ASK</span>
+              <span class="box-val text-red">{{ sel.highestPrice | number:'1.3-3' }} DT</span>
               <span class="box-sub">Across all stores</span>
             </div>
             <div class="summary-box">
-              <span class="box-lbl">Potential Savings</span>
-              <span class="box-val text-cyan">{{ sel.maxSavingsAmount | number:'1.3-3' }} DT</span>
-              <span class="box-sub">{{ sel.maxSavingsPercentage }}% cheaper</span>
+              <span class="box-lbl">ARBITRAGE_SPREAD</span>
+              <span class="box-val text-amber">{{ sel.maxSavingsAmount | number:'1.3-3' }} DT</span>
+              <span class="box-sub">{{ sel.maxSavingsPercentage }}% spread</span>
             </div>
             <div class="summary-box">
-              <span class="box-lbl">All-Time Lowest</span>
-              <span class="box-val">{{ sel.historicalLowPrice | number:'1.3-3' }} DT</span>
-              <span class="box-sub">Ever recorded</span>
+              <span class="box-lbl">HISTORICAL_LOW</span>
+              <span class="box-val text-green">{{ sel.historicalLowPrice | number:'1.3-3' }} DT</span>
+              <span class="box-sub">90D / All-time floor</span>
             </div>
           </div>
 
           <!-- Side-by-side Offers Table -->
           <div class="table-container">
-            <h3 class="table-heading">Live Store Price Comparison</h3>
+            <h3 class="table-heading">01 // ORDER BOOK COMPARISON</h3>
             <table class="comparison-table">
               <thead>
                 <tr>
                   <th>Retailer</th>
-                  <th>Price</th>
-                  <th>Original Price</th>
-                  <th>Difference vs Lowest</th>
-                  <th>Availability</th>
-                  <th>Direct Store Link</th>
+                  <th>Ask Price</th>
+                  <th>Regular</th>
+                  <th>Spread vs Low</th>
+                  <th>Stock</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -415,7 +427,7 @@
                       <div class="retailer-cell">
                         <span class="retailer-badge" [ngClass]="getStoreBadgeClass(offer.retailerCode)">{{ offer.retailerName }}</span>
                         @if (offer.isCheapest) {
-                          <span class="best-deal-chip">Cheapest</span>
+                          <span class="best-deal-chip">LOWEST</span>
                         }
                       </div>
                     </td>
@@ -424,25 +436,24 @@
                     </td>
                     <td>
                       <span class="table-reg-price">
-                        {{ (offer.regularPrice > offer.finalPrice ? (offer.regularPrice | number:'1.3-3') : '-') }} DT
+                        {{ offer.regularPrice > offer.finalPrice ? (offer.regularPrice | number:'1.3-3') + ' DT' : '-' }}
                       </span>
                     </td>
                     <td>
                       @if (offer.isCheapest) {
-                        <span class="table-diff lowest">Lowest Price</span>
+                        <span class="table-diff lowest">BEST_BID</span>
                       } @else {
                         <span class="table-diff diff-plus">+{{ offer.differenceVsCheapest | number:'1.3-3' }} DT (+{{ offer.differencePercentage }}%)</span>
                       }
                     </td>
                     <td>
                       <span class="stock-chip" [class.in-stock]="offer.isInStock" [class.out-stock]="!offer.isInStock">
-                        {{ offer.isInStock ? 'In Stock' : 'Out of Stock' }}
+                        {{ offer.isInStock ? 'IN_STOCK' : 'OUT_OF_STOCK' }}
                       </span>
                     </td>
                     <td>
                       <a [href]="offer.productUrl" target="_blank" rel="noopener noreferrer" class="btn-store-external">
-                        <span>Buy on {{ offer.retailerName }}</span>
-                        <svg class="ext-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
+                        <span>OPEN_{{ offer.retailerName | uppercase }} ↗</span>
                       </a>
                     </td>
                   </tr>
@@ -453,11 +464,11 @@
 
           <!-- Price History Section -->
           <div class="history-section">
-            <h3 class="table-heading">Price Drop History & Log</h3>
+            <h3 class="table-heading">02 // PRICE HISTORY TAPE</h3>
             @if (bll.loadingHistory()) {
-              <p class="history-loading">Loading price history...</p>
+              <p class="history-loading">LOADING PRICE LOG...</p>
             } @else if (bll.selectedPriceHistory().length === 0) {
-              <p class="history-empty">No price changes recorded yet. We just started tracking this item!</p>
+              <p class="history-empty">NO HISTORICAL CHANGES RECORDED YET // TRACKING ACTIVE</p>
             } @else {
               <div class="history-timeline">
                 @for (h of bll.selectedPriceHistory(); track h.id) {
@@ -469,9 +480,9 @@
                         <span class="timeline-date">{{ formatDate(h.recordedAt) }}</span>
                       </div>
                       <div class="timeline-body">
-                        Price recorded: <strong>{{ h.finalPrice | number:'1.3-3' }} DT</strong>
+                        RECORDED_ASK: <strong>{{ h.finalPrice | number:'1.3-3' }} DT</strong>
                         <span class="timeline-stock" [class.in]="h.isInStock" [class.out]="!h.isInStock">
-                          ({{ h.isInStock ? 'In Stock' : 'Out of Stock' }})
+                          [{{ h.isInStock ? 'IN_STOCK' : 'OUT_OF_STOCK' }}]
                         </span>
                       </div>
                     </div>
@@ -484,7 +495,7 @@
 
         <!-- Modal Footer -->
         <div class="modal-footer">
-          <button (click)="bll.closeSelectedProduct()" class="btn-modal-close" type="button">Close</button>
+          <button (click)="bll.closeSelectedProduct()" class="btn-modal-close" type="button">[CLOSE_WINDOW]</button>
         </div>
       </div>
     </div>
@@ -492,4 +503,3 @@
 </main>
 
 <app-footer></app-footer>
-
