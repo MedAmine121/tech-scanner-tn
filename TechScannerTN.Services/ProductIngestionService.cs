@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Hi_Trade.DAL;
 using Hi_Trade.Models;
 using Hi_Trade.Models.DTOs;
+using Hi_Trade.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -17,14 +18,17 @@ public partial class ProductIngestionService : IProductIngestionService
 {
     private readonly IDbContextFactory<TechScannerContext> _contextFactory;
     private readonly ILogger<ProductIngestionService> _logger;
+    private readonly ICacheService? _cacheService;
     private static readonly ConcurrentDictionary<string, int> RetailerIdCache = new(StringComparer.OrdinalIgnoreCase);
 
     public ProductIngestionService(
         IDbContextFactory<TechScannerContext> contextFactory,
-        ILogger<ProductIngestionService> logger)
+        ILogger<ProductIngestionService> logger,
+        ICacheService? cacheService = null)
     {
         _contextFactory = contextFactory;
         _logger = logger;
+        _cacheService = cacheService;
     }
 
     public async Task<ProductListing> IngestProductAsync(ScrapedProductItem item, CancellationToken cancellationToken = default)
@@ -170,6 +174,11 @@ public partial class ProductIngestionService : IProductIngestionService
         // 5. Recalculate canonical product aggregates
         await RecalculateProductAggregatesAsync(context, canonicalProduct.Id, cancellationToken);
 
+        if (_cacheService != null && (isNewListing || hasPriceChanged))
+        {
+            await _cacheService.InvalidateScopeAsync("catalog", cancellationToken);
+        }
+
         return listing;
     }
 
@@ -235,6 +244,11 @@ public partial class ProductIngestionService : IProductIngestionService
         }
 
         await context.SaveChangesAsync(cancellationToken);
+
+        if (_cacheService != null)
+        {
+            await _cacheService.InvalidateScopeAsync("categories", cancellationToken);
+        }
     }
 
     public async Task<ScrapeSession> StartScrapeSessionAsync(string retailerCode, CancellationToken cancellationToken = default)
@@ -278,6 +292,11 @@ public partial class ProductIngestionService : IProductIngestionService
             session.ErrorMessage = errorMessage;
 
             await context.SaveChangesAsync(cancellationToken);
+
+            if (_cacheService != null)
+            {
+                await _cacheService.InvalidateScopeAsync("catalog", cancellationToken);
+            }
         }
     }
 

@@ -1,4 +1,5 @@
 using Hi_Trade.Services;
+using Hi_Trade.Services.Interfaces;
 using Hi_Trade.DAL;
 using Hi_Trade.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +11,16 @@ namespace Hi_Trade.Controllers;
 [Route("api/categories")]
 public sealed class CategoriesController : ControllerBase
 {
-    private readonly TechScannerContext _context;
+    private const string CategoriesCacheScope = "categories";
+    private static readonly TimeSpan CategoriesCacheTtl = TimeSpan.FromMinutes(60);
 
-    public CategoriesController(TechScannerContext context)
+    private readonly TechScannerContext _context;
+    private readonly ICacheService? _cacheService;
+
+    public CategoriesController(TechScannerContext context, ICacheService? cacheService = null)
     {
         _context = context;
+        _cacheService = cacheService;
     }
 
     /// <summary>
@@ -24,14 +30,7 @@ public sealed class CategoriesController : ControllerBase
     [ProducesResponseType<IEnumerable<CategoryDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CategoryDto>>> GetMytekCategories(CancellationToken cancellationToken)
     {
-        var categories = await _context.RetailerCategories
-            .AsNoTracking()
-            .Where(rc => rc.Retailer.Code == "MYTEK")
-            .OrderBy(rc => rc.ParentCategoryName)
-            .ThenBy(rc => rc.Title)
-            .Select(rc => new CategoryDto(rc.ParentCategoryName, rc.Title, rc.Url))
-            .ToListAsync(cancellationToken);
-
+        var categories = await GetRetailerCategoriesByCodeAsync("MYTEK", cancellationToken);
         return Ok(categories);
     }
 
@@ -42,14 +41,7 @@ public sealed class CategoriesController : ControllerBase
     [ProducesResponseType<IEnumerable<CategoryDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CategoryDto>>> GetRetailerCategories(string retailerCode, CancellationToken cancellationToken)
     {
-        var categories = await _context.RetailerCategories
-            .AsNoTracking()
-            .Where(rc => rc.Retailer.Code == retailerCode.ToUpperInvariant())
-            .OrderBy(rc => rc.ParentCategoryName)
-            .ThenBy(rc => rc.Title)
-            .Select(rc => new CategoryDto(rc.ParentCategoryName, rc.Title, rc.Url))
-            .ToListAsync(cancellationToken);
-
+        var categories = await GetRetailerCategoriesByCodeAsync(retailerCode, cancellationToken);
         return Ok(categories);
     }
 
@@ -60,13 +52,63 @@ public sealed class CategoriesController : ControllerBase
     [ProducesResponseType<IEnumerable<Category>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<Category>>> GetUnifiedCategories(CancellationToken cancellationToken)
     {
-        var categories = await _context.Categories
+        if (_cacheService == null)
+        {
+            return Ok(await FetchUnifiedCategoriesAsync(cancellationToken));
+        }
+
+        var version = await _cacheService.GetVersionTokenAsync(CategoriesCacheScope, cancellationToken);
+        var cacheKey = $"categories:v={version}:unified";
+
+        var categories = await _cacheService.GetOrSetAsync(
+            cacheKey,
+            FetchUnifiedCategoriesAsync,
+            CategoriesCacheTtl,
+            cancellationToken);
+
+        return Ok(categories);
+    }
+
+    private async Task<List<CategoryDto>> GetRetailerCategoriesByCodeAsync(
+        string retailerCode,
+        CancellationToken cancellationToken)
+    {
+        var code = retailerCode.ToUpperInvariant();
+        if (_cacheService == null)
+        {
+            return await FetchRetailerCategoriesAsync(code, cancellationToken);
+        }
+
+        var version = await _cacheService.GetVersionTokenAsync(CategoriesCacheScope, cancellationToken);
+        var cacheKey = $"categories:v={version}:retailer:{code}";
+
+        return await _cacheService.GetOrSetAsync(
+            cacheKey,
+            ct => FetchRetailerCategoriesAsync(code, ct),
+            CategoriesCacheTtl,
+            cancellationToken);
+    }
+
+    private Task<List<CategoryDto>> FetchRetailerCategoriesAsync(
+        string normalizedCode,
+        CancellationToken cancellationToken)
+    {
+        return _context.RetailerCategories
+            .AsNoTracking()
+            .Where(rc => rc.Retailer.Code == normalizedCode)
+            .OrderBy(rc => rc.ParentCategoryName)
+            .ThenBy(rc => rc.Title)
+            .Select(rc => new CategoryDto(rc.ParentCategoryName, rc.Title, rc.Url))
+            .ToListAsync(cancellationToken);
+    }
+
+    private Task<List<Category>> FetchUnifiedCategoriesAsync(CancellationToken cancellationToken)
+    {
+        return _context.Categories
             .AsNoTracking()
             .Where(c => c.ParentCategoryId == null)
             .Include(c => c.SubCategories)
             .ToListAsync(cancellationToken);
-
-        return Ok(categories);
     }
 }
 

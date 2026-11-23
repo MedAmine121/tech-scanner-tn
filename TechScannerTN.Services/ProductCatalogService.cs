@@ -6,22 +6,147 @@ using System.Threading.Tasks;
 using Hi_Trade.DAL;
 using Hi_Trade.Models;
 using Hi_Trade.Models.DTOs;
+using Hi_Trade.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hi_Trade.Services;
 
 public class ProductCatalogService : IProductCatalogService
 {
-    private readonly TechScannerContext _context;
+    private const string CatalogCacheScope = "catalog";
+    private static readonly TimeSpan ProductListTtl = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan ProductDetailsTtl = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan PriceHistoryTtl = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan PriceDropsTtl = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan MarketOverviewTtl = TimeSpan.FromMinutes(15);
 
-    public ProductCatalogService(TechScannerContext context)
+    private readonly TechScannerContext _context;
+    private readonly ICacheService? _cacheService;
+
+    public ProductCatalogService(TechScannerContext context, ICacheService? cacheService = null)
     {
         _context = context;
+        _cacheService = cacheService;
     }
 
     public async Task<PagedResult<ProductComparisonDto>> GetProductsAsync(
         ProductFilterRequest request,
         CancellationToken cancellationToken = default)
+    {
+        if (_cacheService == null)
+        {
+            return await FetchProductsAsync(request, cancellationToken);
+        }
+
+        var version = await _cacheService.GetVersionTokenAsync(CatalogCacheScope, cancellationToken);
+        var cacheKey = BuildProductsCacheKey(version, request);
+
+        return await _cacheService.GetOrSetAsync(
+            cacheKey,
+            ct => FetchProductsAsync(request, ct),
+            ProductListTtl,
+            cancellationToken);
+    }
+
+    public async Task<ProductComparisonDto?> GetProductDetailsAsync(
+        int productId,
+        CancellationToken cancellationToken = default)
+    {
+        string? cacheKey = null;
+        if (_cacheService != null)
+        {
+            var version = await _cacheService.GetVersionTokenAsync(CatalogCacheScope, cancellationToken);
+            cacheKey = $"products:v={version}:details:{productId}";
+
+            var cached = await _cacheService.GetAsync<ProductComparisonDto>(cacheKey, cancellationToken);
+            if (cached != null)
+            {
+                return cached;
+            }
+        }
+
+        var product = await _context.Products
+            .AsNoTracking()
+            .Include(p => p.Brand)
+            .Include(p => p.Category)
+            .Include(p => p.CheapestRetailer)
+            .Include(p => p.Listings)
+                .ThenInclude(l => l.Retailer)
+            .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
+
+        if (product == null)
+        {
+            return null;
+        }
+
+        var dto = MapToComparisonDto(product);
+        if (_cacheService != null && cacheKey != null)
+        {
+            await _cacheService.SetAsync(cacheKey, dto, ProductDetailsTtl, cancellationToken);
+        }
+
+        return dto;
+    }
+
+    public async Task<IReadOnlyList<PriceHistoryDto>> GetPriceHistoryAsync(
+        int productId,
+        CancellationToken cancellationToken = default)
+    {
+        if (_cacheService == null)
+        {
+            return await FetchPriceHistoryAsync(productId, cancellationToken);
+        }
+
+        var version = await _cacheService.GetVersionTokenAsync(CatalogCacheScope, cancellationToken);
+        var cacheKey = $"products:v={version}:history:{productId}";
+
+        return await _cacheService.GetOrSetAsync(
+            cacheKey,
+            ct => FetchPriceHistoryAsync(productId, ct),
+            PriceHistoryTtl,
+            cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ProductComparisonDto>> GetPriceDropsAsync(
+        int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var clampedLimit = Math.Clamp(limit, 1, 100);
+        if (_cacheService == null)
+        {
+            return await FetchPriceDropsAsync(clampedLimit, cancellationToken);
+        }
+
+        var version = await _cacheService.GetVersionTokenAsync(CatalogCacheScope, cancellationToken);
+        var cacheKey = $"products:v={version}:pricedrops:limit={clampedLimit}";
+
+        return await _cacheService.GetOrSetAsync(
+            cacheKey,
+            ct => FetchPriceDropsAsync(clampedLimit, ct),
+            PriceDropsTtl,
+            cancellationToken);
+    }
+
+    public async Task<MarketOverviewDto> GetMarketOverviewAsync(CancellationToken cancellationToken = default)
+    {
+        if (_cacheService == null)
+        {
+            return await FetchMarketOverviewAsync(cancellationToken);
+        }
+
+        var version = await _cacheService.GetVersionTokenAsync(CatalogCacheScope, cancellationToken);
+        var cacheKey = $"analytics:v={version}:overview";
+
+        return await _cacheService.GetOrSetAsync(
+            cacheKey,
+            FetchMarketOverviewAsync,
+            MarketOverviewTtl,
+            cancellationToken);
+    }
+
+    private async Task<PagedResult<ProductComparisonDto>> FetchProductsAsync(
+        ProductFilterRequest request,
+        CancellationToken cancellationToken)
     {
         var query = _context.Products
             .AsNoTracking()
@@ -105,25 +230,9 @@ public class ProductCatalogService : IProductCatalogService
         };
     }
 
-    public async Task<ProductComparisonDto?> GetProductDetailsAsync(
+    private async Task<List<PriceHistoryDto>> FetchPriceHistoryAsync(
         int productId,
-        CancellationToken cancellationToken = default)
-    {
-        var product = await _context.Products
-            .AsNoTracking()
-            .Include(p => p.Brand)
-            .Include(p => p.Category)
-            .Include(p => p.CheapestRetailer)
-            .Include(p => p.Listings)
-                .ThenInclude(l => l.Retailer)
-            .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
-
-        return product == null ? null : MapToComparisonDto(product);
-    }
-
-    public async Task<IReadOnlyList<PriceHistoryDto>> GetPriceHistoryAsync(
-        int productId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         return await _context.PriceHistories
             .AsNoTracking()
@@ -143,9 +252,9 @@ public class ProductCatalogService : IProductCatalogService
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<ProductComparisonDto>> GetPriceDropsAsync(
-        int limit = 20,
-        CancellationToken cancellationToken = default)
+    private async Task<List<ProductComparisonDto>> FetchPriceDropsAsync(
+        int clampedLimit,
+        CancellationToken cancellationToken)
     {
         var products = await _context.Products
             .AsNoTracking()
@@ -156,13 +265,13 @@ public class ProductCatalogService : IProductCatalogService
             .Include(p => p.Listings)
                 .ThenInclude(l => l.Retailer)
             .OrderByDescending(p => p.MaxPrice - p.MinPrice)
-            .Take(Math.Clamp(limit, 1, 100))
+            .Take(clampedLimit)
             .ToListAsync(cancellationToken);
 
         return products.Select(MapToComparisonDto).ToList();
     }
 
-    public async Task<MarketOverviewDto> GetMarketOverviewAsync(CancellationToken cancellationToken = default)
+    private async Task<MarketOverviewDto> FetchMarketOverviewAsync(CancellationToken cancellationToken)
     {
         var totalCanonicalProducts = await _context.Products.CountAsync(cancellationToken);
         var totalListings = await _context.ProductListings.CountAsync(l => l.IsActive, cancellationToken);
@@ -210,6 +319,16 @@ public class ProductCatalogService : IProductCatalogService
             ProductsAtAllTimeLow = atAllTimeLow,
             RetailerStats = statsList
         };
+    }
+
+    private static string BuildProductsCacheKey(string version, ProductFilterRequest request)
+    {
+        var search = Uri.EscapeDataString(request.SearchTerm?.Trim() ?? string.Empty);
+        var sort = Uri.EscapeDataString(request.SortBy?.Trim().ToLowerInvariant() ?? "cheapest");
+        var page = Math.Max(1, request.Page);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+        return $"products:v={version}:list:q={search}:b={request.BrandId}:c={request.CategoryId}:r={request.RetailerId}:min={request.MinPrice}:max={request.MaxPrice}:stock={request.OnlyInStock}:low={request.OnlyHistoricalLows}:sort={sort}:p={page}:ps={pageSize}";
     }
 
     private static ProductComparisonDto MapToComparisonDto(Product product)

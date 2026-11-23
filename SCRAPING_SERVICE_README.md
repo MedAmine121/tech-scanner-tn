@@ -18,15 +18,27 @@ The scraped data is automatically stored in a SQL Server database and can be acc
 ✅ **Error Handling**: Comprehensive logging and error recovery
 ✅ **Data Versioning**: Tracks when each plan was scraped
 
-## Database Setup
+## Database & Redis Setup
 
-### Connection String
-Update `appsettings.json` with your SQL Server connection string:
+### Start Containers with Docker Compose
+Start the containerized SQL Server and Redis services from the repository root:
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+### Connection Strings
+`TechScannerTN/appsettings.json` is preconfigured for the Docker containers:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=YOUR_SERVER;Database=TechScannerTN;Trusted_Connection=true;TrustServerCertificate=true;"
+    "DefaultConnection": "Server=localhost,1433;Database=TechScannerTN;User Id=sa;Password=TechScanner@2026Password!;TrustServerCertificate=True;MultipleActiveResultSets=True;",
+    "Redis": "localhost:6379,abortConnect=false,connectTimeout=2000"
+  },
+  "Redis": {
+    "InstanceName": "TechScannerTN:"
   }
 }
 ```
