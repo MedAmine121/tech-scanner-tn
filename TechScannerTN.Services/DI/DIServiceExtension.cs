@@ -8,6 +8,7 @@ public static class DIServiceExtension
 {
     public static IServiceCollection AddServices(this IServiceCollection services)
     {
+        services.AddSingleton<ICacheService, RedisCacheService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IProductIngestionService, ProductIngestionService>();
         services.AddScoped<IProductCatalogService, ProductCatalogService>();

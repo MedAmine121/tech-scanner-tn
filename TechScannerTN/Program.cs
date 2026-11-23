@@ -26,6 +26,21 @@ builder.Services.AddDbContext<TechScannerContext>(options =>
 builder.Services.AddDbContextFactory<TechScannerContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Add Redis Distributed Cache (fallback to in-memory distributed cache if Redis connection string is not configured)
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+if (!string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnectionString;
+        options.InstanceName = builder.Configuration["Redis:InstanceName"] ?? "TechScannerTN:";
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+
 // CORS Policy
 builder.Services.AddCors(options =>
 {
