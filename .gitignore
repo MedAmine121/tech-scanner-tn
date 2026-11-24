@@ -281,3 +281,6 @@ environment.development.ts
 
 **/.angular
 **/dist
+
+# Graphify knowledge graph output
+graphify-out/
